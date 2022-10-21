@@ -1,3 +1,4 @@
+from os import linesep
 import re
 from more_itertools import peekable
 import numpy as np
@@ -291,21 +292,21 @@ def parse_summary(lines, seats):
 def parse_hand(lines, file_name, hand_number, hero):
     hand_data = {"file_name": file_name, "hand_number": hand_number, "hero": hero}
     if lines.peek().startswith("Ignition"):
+        line = next(lines)
         # TODO account for other game types and bet limits
-        ts = re.search(r"\-\s(.+)(?<![\sUTC])", lines.peek()).groups()[0]
+        ts = re.search(r"\-\s(.+)(?<![\sUTC])", line).groups()[0]
         hand_data["ts"] = ts
         hand_data["game_type"] = "omaha"
         hand_data["bet_limit"] = "pot limit"
-        next(lines)
 
     if lines.peek().startswith("Table Info"):
-        out = re.search(r"Stakes: \$(?:[\d\,\.]+)-\$([\d\.\,]+)(?<!,)", lines.peek())
+        line = next(lines)
+        out = re.search(r"Stakes: \$(?:[\d\,\.]+)-\$([\d\.\,]+)(?<!,)", line)
         try:
             bb = float(out.groups()[0])
         except Exception as e:
-            print(e, lines.peek())
+            print(e, line)
             raise Exception()
-        next(lines)
     hand_data["big_blind"] = bb
     seats, stats, actions, stacks, stat_data = parse_seats(lines, hand_data)
     deck = []
@@ -352,11 +353,13 @@ def parse_file(lines, file_name, hero):
             next(line_iter)
     return hands
 
+
 def return_bet_ratios(hands):
     bet_ratios = []
     for hand in hands:
         bet_ratios.append(hand["stats"]["bet_ratios"])
     return bet_ratios
+
 
 def create_dataset(hands):
     game_states, target_actions, target_rewards = [], [], []
