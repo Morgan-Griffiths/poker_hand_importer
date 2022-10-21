@@ -326,8 +326,8 @@ def convert_to_ml(hand):
     # print(list(hand.keys()))
     stack_data = hand["stack_data"]
     # print("stack_data", stack_data)
-    X, target_actions = [], []
-    # X = stack of gamestates up to hero decision
+    game_states, target_actions = [], []
+    # game_states = stack of gamestates up to hero decision
     # Y = discounted reward and action choice
     print(hand["hand_data"]["file_name"])
     current_street = 1
@@ -381,16 +381,7 @@ def convert_to_ml(hand):
             current_street += 1
             board = convert_cards(action.board_cards)
             hand_board = hero[1] + board + [0 for _ in range(10 - len(board))]
-            next_state[state_mapping["amount_to_call"]] = 0
             next_state[state_mapping["pot"]] = round_stats["pot"]
-            next_state[state_mapping["pot_odds"]] = 0
-            next_state[state_mapping["previous_amount"]] = 0
-            next_state[state_mapping["previous_action"]] = 0
-            next_state[state_mapping["previous_position"]] = 0
-            next_state[state_mapping["previous_bet_is_blind"]] = 0
-            next_state[state_mapping["last_agro_action"]] = 0
-            next_state[state_mapping["last_agro_position"]] = 0
-            next_state[state_mapping["last_agro_is_blind"]] = 0
             # postflop ordering minus active players
             next_players = [p for p in postflop_positions if p in active_positions]
             next_players_used = next_players[:-1]
@@ -404,7 +395,7 @@ def convert_to_ml(hand):
                 # change active. convert position into index for active positions
                 if action.position == hero_position:  # hero folded
                     num_hero_decisions += 1
-                    X.append(np.stack(model_inputs))
+                    game_states.append(np.stack(model_inputs))
                     target_actions.append(action_category)
                     break
                 num_active_players -= 1
@@ -493,7 +484,7 @@ def convert_to_ml(hand):
             if action.position == hero_position and not action.is_blind:
                 # if not action.is_blind: # gather all datapoints
                 num_hero_decisions += 1
-                X.append(np.stack(model_inputs))
+                game_states.append(np.stack(model_inputs))
                 target_actions.append(action_category)
             if action.last_aggressor_index:
                 (
@@ -574,25 +565,30 @@ def convert_to_ml(hand):
         model_inputs.append(next_state)
 
     target_rewards = [result * 0.95 ** i for i in range(num_hero_decisions - 1, -1, -1)]
-    visualize_state(
-        X, target_actions, target_rewards, hand, position_to_int, position_to_str
-    )
-    return (X, target_actions, target_rewards)
+    # visualize_state(
+    #     game_states,
+    #     target_actions,
+    #     target_rewards,
+    #     hand,
+    #     position_to_int,
+    #     position_to_str,
+    # )
+    return (game_states, target_actions, target_rewards)
 
 
 def visualize_state(
-    X, target_actions, target_rewards, hand, position_to_int, position_to_str
+    game_states, target_actions, target_rewards, hand, position_to_int, position_to_str
 ):
-    # print(X)
-    if X:
-        print(len(X))
-        print(X[0].shape)
+    # print(game_states)
+    if game_states:
+        print(len(game_states))
+        print(game_states[0].shape)
         print(hand["hand_data"])
         print("target_actions", target_actions)
         print("target_rewards", target_rewards)
         num_players = hand["hand_data"]["num_players"]
-        # for game_state in X:
-        game_state = X[-1]
+        # for game_state in game_states:
+        game_state = game_states[-1]
         for i in range(game_state.shape[0]):
             ...
             print_state(game_state[i], position_to_int, position_to_str)

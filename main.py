@@ -2,6 +2,8 @@ import os
 from tqdm import tqdm
 from import_utils import create_dataset, parse_file
 import numpy as np
+from train import train_network
+import torch
 
 
 def main():
@@ -20,13 +22,21 @@ def main():
             .splitlines()
         )
         hero = "tj" if target_folder == tj_folder else "chris"
-        hands = parse_file(lines, hand_path, hero, db_insertion=False)
-        create_dataset(hands)
+        hands = parse_file(lines, hand_path, hero)
+        (game_states, target_actions, target_rewards) = create_dataset(hands)
         # if db_insertion:
         #     store_hand(hand)
         if i == 0:
             break
         # break
+    training_params = {
+        "epochs": 25,
+    }
+    game_states = torch.from_numpy(np.stack(game_states))
+    target_actions = torch.from_numpy(np.stack(target_actions))
+    target_rewards = torch.from_numpy(np.stack(target_rewards))
+    print(game_states.shape, target_actions.shape, target_rewards.shape)
+    train_network(training_params, game_states, target_actions, target_rewards)
 
 
 main()

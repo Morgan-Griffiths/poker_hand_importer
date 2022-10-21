@@ -134,158 +134,167 @@ def parse_cards(lines, players, deck):
     return players, deck
 
 
-def parse_stage(lines, seats, stats, hand_data, deck, actions, stacks, stat_data):
-    stage = next(lines)
-    if stage.startswith("*** HOLE"):
-        while re.search(r"Card dealt", lines.peek()):
-            parse_cards(lines, seats, deck)
+def parse_hole_cards(lines, seats, deck):
+    while re.search(r"Card dealt", lines.peek()):
+        parse_cards(lines, seats, deck)
+
+
+def parse_board(seats, stats, stage, actions, stacks, stat_data, hand_data, deck):
+    for k in seats.keys():
+        seats[k]["street_total"] = 0.0
+    stats["action_order"] = 0
+    # parse board cards
+    street_name = re.search(r"\*\s([A-Z]+)\s\*", stage).groups()[0]
+    board = re.findall(r"([AKQJTcdsh\d]{2})", stage)
+    actions.append(Street(street_name.lower(), board))
+    stacks.append({k: {"street_total": seats[k]["street_total"]} for k in seats.keys()})
+    stat_data.append(
+        {"pot": stats["pot"], "num_active_players": stats["num_active_players"]}
+    )
+    stats["last_aggressor"] = None
+    stats["last_aggressor_index"] = None
+    stats["rake"] = calc_rake(
+        hand_data["num_players"], hand_data["big_blind"], stats["pot"]
+    )
+    if len(board) == 3:
+        deck.extend(board)
     else:
-        for k in seats.keys():
-            seats[k]["street_total"] = 0.0
-        stats["action_order"] = 0
-        # parse board cards
-        street_name = re.search(r"\*\s([A-Z]+)\s\*", stage).groups()[0]
-        board = re.findall(r"([AKQJTcdsh\d]{2})", stage)
-        actions.append(Street(street_name.lower(), board))
+        deck.append(board[-1])
+
+
+def parse_actions(line, actions, stats, seats, hand_data, stacks, stat_data):
+    if re.search(r"All-in|Check|Call|Bets|Raises|Folds", line):
+        if re.search(r"All-in", line):
+            position, hero, amount, street_total = re.search(
+                r"([\w\s\d\+]+)(\s\[ME\])? :(?:\D*)\$([\d\,\.]+)(?:[\D]+)?([\d\,\.]+)?",
+                line,
+            ).groups()
+            if re.search(r"All-in\(raise\)", line):
+                street_total = re.search(r"to \$([\d\,\.]+)", line).groups()
+                action_type = RAISE
+            elif isinstance(actions[-1], Street) or actions[-1].action_type == CHECK:
+                # allin bet
+                action_type = BET
+            else:
+                action_type = CALL
+        else:
+            position, hero, action_type, amount, street_total = re.search(
+                r"([\w\s\d\+]*[\w\d])\s*(\[ME\])? : ([\w\-]+)(?:\s\$)?([\d\,\.]+)?(?:[\D]+)?([\d\,\.]+)?",
+                line,
+            ).groups()
+        bet_ratio = 0
+        if amount:
+            amount = float(amount.replace(",", ""))
+            if street_total:
+                if isinstance(street_total, tuple):
+                    street_total = street_total[0]
+                street_total = float(street_total.replace(",", ""))
+            else:
+                street_total = amount
+            # calc max bet
+            if action_type in [RAISE, BET]:
+                if stats["last_aggressor"] is not None:
+                    last_aggro_street_total = seats[stats["last_aggressor"]][
+                        "street_total"
+                    ]
+                else:
+                    last_aggro_street_total = 0.0
+                min_bet, max_bet = return_standard_max_potlimit_betsize(
+                    actions[stats["last_aggressor_index"]]
+                    if stats["last_aggressor_index"] is not None
+                    else None,
+                    seats[position]["stack"] + seats[position]["winnings"],
+                    seats[position]["street_total"],
+                    last_aggro_street_total,
+                    stats["pot"] - stats["rake"],
+                    hand_data["big_blind"],
+                    stats["penultimate_raise"],
+                )
+                if max_bet > 0 and max_bet > min_bet:
+                    bet_ratio = min(
+                        round((street_total - min_bet) / (max_bet - min_bet), 2),
+                        1.0,
+                    )
+                # print(min_bet, max_bet, bet_ratio)
+            stats["pot"] += amount
+            seats[position]["street_total"] += amount
+            seats[position]["winnings"] -= amount
+            stats["bet_ratios"].append(bet_ratio)
+        actions.append(
+            Action(
+                position,
+                bool(hero),
+                action_type,
+                amount,
+                street_total if street_total else amount,
+                bet_ratio if action_type in [RAISE, BET] else None,
+                False,
+                stats["pot"] - amount if amount else stats["pot"],
+                stats["rake"],
+                stats["last_aggressor_index"],
+                stats["num_active_players"],
+                stats["action_order"],
+            )
+        )
+        if action_type in [BET, RAISE]:
+            if stats["last_aggressor"] is not None:
+                stats["penultimate_raise"] = seats[stats["last_aggressor"]][
+                    "street_total"
+                ]
+            else:
+                stats["penultimate_raise"] = 0
+            stats["last_aggressor"] = position
+            stats["last_aggressor_index"] = len(actions) - 1
+        elif action_type == FOLD:
+            stats["num_active_players"] -= 1
+        stats["action_order"] += 1
         stacks.append(
             {k: {"street_total": seats[k]["street_total"]} for k in seats.keys()}
         )
         stat_data.append(
             {"pot": stats["pot"], "num_active_players": stats["num_active_players"]}
         )
-        stats["last_aggressor"] = None
-        stats["last_aggressor_index"] = None
-        stats["rake"] = calc_rake(
-            hand_data["num_players"], hand_data["big_blind"], stats["pot"]
-        )
-        if len(board) == 3:
-            deck.extend(board)
-        else:
-            deck.append(board[-1])
+
+
+def parse_return(line, seats, stats):
+    if re.search(r"Return", line):
+        position, hero, amount = re.search(
+            r"([\w\s\d\+]+)(\s\[ME\])? :(?:.*)\$([\d\,\.]+)", line
+        ).groups()
+        position = position.rstrip()
+        amount = amount.replace(",", "")
+        seats[position]["winnings"] += float(amount)
+        seats[position]["street_total"] -= float(amount)
+        stats["pot"] -= float(amount)
+
+
+def parse_stage(lines, seats, stats, hand_data, deck, actions, stacks, stat_data):
+    stage = next(lines)
+    if stage.startswith("*** HOLE"):  # Parsing Preflop
+        parse_hole_cards(lines, seats, deck)
+    else:  # Parsing Postflop
+        parse_board(seats, stats, stage, actions, stacks, stat_data, hand_data, deck)
+    # parse_actions()
     while not lines.peek().startswith("***"):
         # Parsing actions. Can also be [All-in,All-in(raise)]. First option is either call or bet.
-        if re.search(r"All-in|Check|Call|Bets|Raises|Folds", lines.peek()):
-            if re.search(r"All-in", lines.peek()):
-                position, hero, amount, street_total = re.search(
-                    r"([\w\s\d\+]+)(\s\[ME\])? :(?:\D*)\$([\d\,\.]+)(?:[\D]+)?([\d\,\.]+)?",
-                    lines.peek(),
-                ).groups()
-                if re.search(r"All-in\(raise\)", lines.peek()):
-                    street_total = re.search(r"to \$([\d\,\.]+)", lines.peek()).groups()
-                    action_type = RAISE
-                elif (
-                    isinstance(actions[-1], Street) or actions[-1].action_type == CHECK
-                ):
-                    # allin bet
-                    action_type = BET
-                else:
-                    action_type = CALL
-            else:
-                position, hero, action_type, amount, street_total = re.search(
-                    r"([\w\s\d\+]+)(\s\[ME\])? : ([\w\-]+)(?:\s\$)?([\d\,\.]+)?(?:[\D]+)?([\d\,\.]+)?",
-                    lines.peek(),
-                ).groups()
-            position = position.rstrip()
-            bet_ratio = 0
-            if amount:
-                amount = float(amount.replace(",", ""))
-                if street_total:
-                    if isinstance(street_total, tuple):
-                        street_total = street_total[0]
-                    street_total = float(street_total.replace(",", ""))
-                else:
-                    street_total = amount
-                # calc max bet
-                if action_type in [RAISE, BET]:
-                    if stats["last_aggressor"] is not None:
-                        last_aggro_street_total = seats[stats["last_aggressor"]][
-                            "street_total"
-                        ]
-                    else:
-                        last_aggro_street_total = 0.0
-                    min_bet, max_bet = return_standard_max_potlimit_betsize(
-                        actions[stats["last_aggressor_index"]]
-                        if stats["last_aggressor_index"] is not None
-                        else None,
-                        seats[position]["stack"] + seats[position]["winnings"],
-                        seats[position]["street_total"],
-                        last_aggro_street_total,
-                        stats["pot"] - stats["rake"],
-                        hand_data["big_blind"],
-                        stats["penultimate_raise"],
-                    )
-                    if max_bet > 0 and max_bet > min_bet:
-                        bet_ratio = min(
-                            round((street_total - min_bet) / (max_bet - min_bet), 2),
-                            1.0,
-                        )
-                    # print(min_bet, max_bet, bet_ratio)
-                stats["pot"] += amount
-                seats[position]["street_total"] += amount
-                seats[position]["winnings"] -= amount
-                stats["bet_ratios"].append(bet_ratio)
-            actions.append(
-                Action(
-                    position,
-                    bool(hero),
-                    action_type,
-                    amount,
-                    street_total if street_total else amount,
-                    bet_ratio if action_type in [RAISE, BET] else None,
-                    False,
-                    stats["pot"] - amount if amount else stats["pot"],
-                    stats["rake"],
-                    stats["last_aggressor_index"],
-                    stats["num_active_players"],
-                    stats["action_order"],
-                )
-            )
-            if action_type in [BET, RAISE]:
-                if stats["last_aggressor"] is not None:
-                    stats["penultimate_raise"] = seats[stats["last_aggressor"]][
-                        "street_total"
-                    ]
-                else:
-                    stats["penultimate_raise"] = 0
-                stats["last_aggressor"] = position
-                stats["last_aggressor_index"] = len(actions) - 1
-            elif action_type == FOLD:
-                stats["num_active_players"] -= 1
-            stats["action_order"] += 1
-            stacks.append(
-                {k: {"street_total": seats[k]["street_total"]} for k in seats.keys()}
-            )
-            stat_data.append(
-                {"pot": stats["pot"], "num_active_players": stats["num_active_players"]}
-            )
-        elif re.search(r"Return", lines.peek()):
-            position, hero, amount = re.search(
-                r"([\w\s\d\+]+)(\s\[ME\])? :(?:.*)\$([\d\,\.]+)", lines.peek()
-            ).groups()
-            position = position.rstrip()
-            amount = amount.replace(",", "")
-            seats[position]["winnings"] += float(amount)
-            seats[position]["street_total"] -= float(amount)
-            stats["pot"] -= float(amount)
-
+        line = next(lines)
+        parse_actions(line, actions, stats, seats, hand_data, stacks, stat_data)
+        parse_return(line, seats, stats)
         stats["rake"] = calc_rake(
             hand_data["num_players"], hand_data["big_blind"], stats["pot"]
         )
-        next(lines)
 
 
 def parse_summary(lines, seats):
     next(lines)
     while lines.peek() != "" and lines:
-        if lines.peek().startswith("Seat"):
-            out = re.search(
-                r": ([\w\s\d\+]+)(\s\[ME\])?(?:\s\$)([\d\,\.]+)?", lines.peek()
-            )
+        line = next(lines)
+        if line.startswith("Seat"):
+            out = re.search(r": ([\w\s\d\+]+)(\s\[ME\])?(?:\s\$)([\d\,\.]+)?", line)
             if out:
                 position, hero, amount = out.groups()
                 amount = amount.replace(",", "")
                 seats[position]["winnings"] += float(amount)
-        next(lines)
     return {k: seats[k]["winnings"] for k in seats.keys()}
 
 
@@ -376,9 +385,6 @@ def create_dataset(hands):
 
     # print([s.shape for s in padded_states])
     print(max_original_length)
-    # np.save("states", game_states)
-    # np.save("actions", target_actions)
-    # np.save("rewards", target_rewards)
     # pad states
     padded_states = []
     for s in game_states:
@@ -389,3 +395,8 @@ def create_dataset(hands):
         padded = np.zeros((pad_amount, state_shape))
         padded_state = np.concatenate([s, padded], axis=0)
         padded_states.append(padded_state)
+
+    # np.save("states", game_states)
+    # np.save("actions", target_actions)
+    # np.save("rewards", target_rewards)
+    return padded_states,target_actions,target_rewards
