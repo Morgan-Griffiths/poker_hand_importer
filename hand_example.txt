@@ -1,0 +1,42 @@
+Ignition Hand #4332787586 TBL#27407430 OMAHA Pot Limit [MVS] - 2022-08-24 06:19:02 UTC
+Table Info: Version: 1, Type: MVS, Stakes: $5-$10, Table: 001712EE-0
+Seat 1: Big Blind ($300 in chips)
+Seat 2: UTG ($990 in chips)
+Seat 3: UTG+1 ($1,411.69 in chips)
+Seat 4: UTG+2 ($1,265.98 in chips)
+Seat 5: Dealer ($1,321.75 in chips)
+Seat 6: Small Blind [ME] ($2,453.02 in chips)
+Dealer : Set dealer [5]
+Player Info: Seat1: P1-81e0894705997b3c91b004dc6e5e7790, Seat2: P2-a75f8a95c24f15b480549a117134f7a4, Seat3: P3-aece0b8f6600014a0256dab8e47328a1, Seat4: P4-7735018e7674784bd4bfa31c1702e84f, Seat5: P5-1e0dfbe51468289bec1665d3de81b35f 
+Small Blind [ME] : Small Blind $5
+Big Blind : Big Blind $10
+*** HOLE CARDS ***
+Big Blind : Card dealt to a spot [3h 5d Ad 8s]
+Dealer : Card dealt to a spot [9d Td 8h Ks]
+Small Blind [ME] : Card dealt to a spot [2c 7h Jh Qh]
+UTG : Folds
+UTG+1 : Folds
+UTG+2 : Folds
+Dealer : Raises $35 to $35
+Small Blind [ME] : Folds
+Big Blind : Calls $25
+*** FLOP *** [3d 4h 8d]
+Big Blind : Checks
+Dealer : Bets $75
+Big Blind : All-in(raise) $265 to $265
+Dealer : Calls $190
+*** TURN *** [3d 4h 8d] [9c]
+*** RIVER *** [3d 4h 8d 9c] [Qc]
+Big Blind : Showdown [3h 8s 3d 8d Qc]
+Dealer : Showdown [9d 8h 8d 9c Qc]
+Dealer : Hand result $601
+*** SUMMARY ***
+Total Pot($605)
+Board [3d 4h 8d 9c Qc]
+Seat+1: Big Blind lost with [3h 5d Ad 8s-3h 8s 3d 8d Qc]
+Seat+2: UTG Folded before the FLOP
+Seat+3: UTG+1 Folded before the FLOP
+Seat+4: UTG+2 Folded before the FLOP
+Seat+5: Dealer $601 with [9d Td 8h Ks-9d 8h 8d 9c Qc]
+Seat+6: Small Blind [ME] Folded before the FLOP
+
