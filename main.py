@@ -20,7 +20,10 @@ def main():
             .splitlines()
         )
         hero = "tj" if target_folder == tj_folder else "chris"
-        parse_file(lines, hand_path, hero, db_insertion=False)
+        hands = parse_file(lines, hand_path, hero, db_insertion=False)
+        create_dataset(hands)
+        # if db_insertion:
+        #     store_hand(hand)
         if i == 0:
             break
         # break

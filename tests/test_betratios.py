@@ -1,5 +1,5 @@
 from more_itertools import peekable
-from import_utils import parse_file
+from import_utils import parse_file, return_bet_ratios
 from utils import Action
 import os
 
@@ -40,14 +40,16 @@ ratio_answers2 = [ohand1, ohand2]
 def test_betratio():
     hand_path = "/Users/morgan/Code/hand_import/hand_example.txt"
     lines = peekable(open(hand_path, "r", encoding="utf-8-sig").read().splitlines())
-    bet_ratios = parse_file(lines, hand_path, "tj", False)
+    hands = parse_file(lines, hand_path, "tj", False)
+    bet_ratios = return_bet_ratios(hands)
     assert bet_ratios[0] == [1.0, 0, 1.0, 0.86, 0], bet_ratios
 
 
 def test_betratio2():
     hand_path = "/Users/morgan/Code/hand_import/hand_example2.txt"
     lines = peekable(open(hand_path, "r", encoding="utf-8-sig").read().splitlines())
-    bet_ratios = parse_file(lines, hand_path, "tj", False)
+    hands = parse_file(lines, hand_path, "tj", False)
+    bet_ratios = return_bet_ratios(hands)
     assert bet_ratios[0] == [1.0, 0, 1.0, 0.69, 0.07, 0], bet_ratios
 
 
@@ -59,7 +61,8 @@ def test_betratio_hh():
         .read()
         .splitlines()
     )
-    bet_ratios = parse_file(lines, hand_path, "tj", False)
+    hands = parse_file(lines, hand_path, "tj", False)
+    bet_ratios = return_bet_ratios(hands)
     for i, (ratio, answer) in enumerate(zip(bet_ratios, ratio_answers)):
         assert ratio == answer, (ratio, answer, i)
     # assert bet_ratios == [1.0, 0, 0.5, 0.5, 0], bet_ratios
@@ -73,7 +76,8 @@ def test_betratio_hh2():
         .read()
         .splitlines()
     )
-    bet_ratios = parse_file(lines, hand_path, "chris", False)
+    hands = parse_file(lines, hand_path, "chris", False)
+    bet_ratios = return_bet_ratios(hands)
     for i, (ratio, answer) in enumerate(zip(bet_ratios, ratio_answers2)):
         assert ratio == answer, (ratio, answer, i)
     # assert bet_ratios == [1.0, 0, 0.5, 0.5, 0], bet_ratios
