@@ -336,37 +336,49 @@ def parse_hand(lines, file_name, hand_number, hero):
     }
 
 
-def parse_file(lines, file_name, hero, db_insertion):
-    bet_ratios = []
+def parse_file(lines, file_name, hero):
+    hands = []
     line_iter = peekable(lines)
     num_hands = 0
-    max_len = 24
-    state_shape = 49
-    max_original_length = 0
-    X, target_actions, target_rewards = [], [], []
     while line_iter.peek() == "":
         next(line_iter)
     while line_iter:
         hand = parse_hand(line_iter, file_name, num_hands, hero)
-        # print(hand)
-        # if db_insertion:
-        #     store_hand(hand)
-        states, actions, rewards = convert_to_ml(hand)
-        # print(type(states), len(states))
-        if len(states):
-            [X.append(s) for s in states]
-            target_actions.append(actions)
-            target_rewards.append(rewards)
+        hands.append(hand)
         num_hands += 1
-        while line_iter and line_iter.peek() == "":
-            next(line_iter)
-        # print(hand["stats"])
-        bet_ratios.append(hand["stats"]["bet_ratios"])
         if num_hands == 10:
             break
+        while line_iter and line_iter.peek() == "":
+            next(line_iter)
+    return hands
+
+def return_bet_ratios(hands):
+    bet_ratios = []
+    for hand in hands:
+        bet_ratios.append(hand["stats"]["bet_ratios"])
+    return bet_ratios
+
+def create_dataset(hands):
+    game_states, target_actions, target_rewards = [], [], []
+    max_len = 24
+    state_shape = 49
+    max_original_length = 0
+    for hand in hands:
+        states, actions, rewards = convert_to_ml(hand)
+        # print(type(states), len(states))
+        if states:
+            game_states.extend(states)
+            target_actions.extend(actions)
+            target_rewards.extend(rewards)
+
+    # print([s.shape for s in padded_states])
+    print(max_original_length)
+    # np.save("states", game_states)
+    # np.save("actions", target_actions)
+    # np.save("rewards", target_rewards)
     # pad states
     padded_states = []
-    for s in X:
+    for s in game_states:
         # print(s)
         # print("shape", s.shape[0])
         max_original_length = max(s.shape[0], max_original_length)
@@ -374,9 +386,3 @@ def parse_file(lines, file_name, hero, db_insertion):
         padded = np.zeros((pad_amount, state_shape))
         padded_state = np.concatenate([s, padded], axis=0)
         padded_states.append(padded_state)
-    # print([s.shape for s in padded_states])
-    print(max_original_length)
-    # np.save("states", X)
-    # np.save("actions", target_actions)
-    # np.save("rewards", target_rewards)
-    return bet_ratios
