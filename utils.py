@@ -1,7 +1,5 @@
 from collections import namedtuple
-from re import A
 import numpy as np
-from operator import itemgetter, attrgetter
 
 Action = namedtuple(
     "Action",
@@ -317,6 +315,50 @@ def calculate_last_agro_action(action, last_agro_action, position_to_int):
     return last_agro_action.amount, agro_action, last_agro_position, last_agro_is_blind
 
 
+def normalize_dataset(states: np.array):
+    r = range(state_mapping["hero_stack"], state_mapping["vil5_stack"] + 1)
+    max_stack = np.max(states[:, :, r])
+    # states[:, :, r] = states[:, :, r] / max_stack
+    print("max_stack", max_stack)
+    # print("new max", np.max(states[:, :, r]))
+    max_pot = np.max(states[:, :, state_mapping["pot"]])
+    print("max_pot", max_pot)
+    return states
+
+
+def scale_state(state, bb):
+    """Scale all non-categorical features by the bb."""
+    state[state_mapping["previous_amount"]] = np.log(
+        (state[state_mapping["previous_amount"]] / bb) + 1
+    )
+    state[state_mapping["amount_to_call"]] = np.log(
+        (state[state_mapping["amount_to_call"]] / bb) + 1
+    )
+    state[state_mapping["pot"]] = np.log((state[state_mapping["pot"]] / bb) + 1)
+    state[state_mapping["hero_stack"]] = np.log(
+        (state[state_mapping["hero_stack"]] / bb) + 1
+    )
+    state[state_mapping["vil1_stack"]] = np.log(
+        (state[state_mapping["vil1_stack"]] / bb) + 1
+    )
+    state[state_mapping["vil2_stack"]] = np.log(
+        (state[state_mapping["vil2_stack"]] / bb) + 1
+    )
+    state[state_mapping["vil3_stack"]] = np.log(
+        (state[state_mapping["vil3_stack"]] / bb) + 1
+    )
+    state[state_mapping["vil4_stack"]] = np.log(
+        (state[state_mapping["vil4_stack"]] / bb) + 1
+    )
+    state[state_mapping["vil5_stack"]] = np.log(
+        (state[state_mapping["vil5_stack"]] / bb) + 1
+    )
+    state[state_mapping["last_agro_amount"]] = np.log(
+        ((state[state_mapping["last_agro_amount"]] / bb) + 1)
+    )
+    return state
+
+
 def convert_to_ml(hand):
     """
     Reason for round stats:
@@ -339,7 +381,7 @@ def convert_to_ml(hand):
     num_active_players = number_of_players
     bb = hand["hand_data"]["big_blind"]
     hero, players = process_players(hand["player_data"].values(), bb)
-    print("hero", hero, players)
+    # print("hero", hero, players)
     if not hero:
         return [], [], []
     hero_position = hero[2]
@@ -376,6 +418,7 @@ def convert_to_ml(hand):
     for i, (action, round_stats, round_seats) in enumerate(
         zip(actions, stat_data, stack_data)
     ):
+        # print("action", action)
         next_state = np.zeros(state_shape)
         if isinstance(action, Street):
             current_street += 1
@@ -402,7 +445,10 @@ def convert_to_ml(hand):
                 active_positions.remove(action.position)
                 active_players[position_to_active[action.position]] = 0
                 # calculated for the next player
-                if i + 1 == len(actions):  # end of game
+                if action.last_aggressor_index is None:
+                    # Player folded when check was possible
+                    bet_amount = 0
+                elif i + 1 == len(actions):  # end of game
                     bet_amount = hand["actions"][
                         action.last_aggressor_index
                     ].street_total
@@ -562,6 +608,7 @@ def convert_to_ml(hand):
         next_state[state_mapping["vil3_active"]] = active_players[3]
         next_state[state_mapping["vil4_active"]] = active_players[4]
         next_state[state_mapping["vil5_active"]] = active_players[5]
+        scale_state(next_state, bb)
         model_inputs.append(next_state)
 
     target_rewards = [result * 0.95 ** i for i in range(num_hero_decisions - 1, -1, -1)]

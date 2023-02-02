@@ -94,3 +94,58 @@ class Simple(nn.Module):
         out = self.layers(x)
         print(out.shape)
         return out
+
+
+class LayerNorm(nn.Module):
+    ...
+
+
+class TransformerBlock(nn.Module):
+    ...
+
+
+class Transformer(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layers = nn.Sequential(
+            nn.Linear(456, 128),
+            nn.LeakyReLU(),
+            nn.Linear(128, 128),
+            nn.LeakyReLU(),
+            nn.Linear(128, 64),
+            nn.LeakyReLU(),
+            nn.Linear(64, 11),
+        )
+        # self.layers.apply(init_weights)
+        self.emb_position = nn.Embedding(7, 8, padding_idx=0)
+        self.emb_action = nn.Embedding(12, 8, padding_idx=0)
+
+    def forward(self, state):
+        B, M, C = state.shape
+        print(state.shape)
+        stats = state.float()
+        pot = state[:, :, state_mapping["pot"]]
+        amnt_to_call = state[:, :, state_mapping["amount_to_call"]]
+        previous_amount = state[:, :, state_mapping["previous_amount"]]
+        action = self.emb_action(state[:, :, state_mapping["previous_action"]].long())
+        position = self.emb_position(
+            state[:, :, state_mapping["previous_position"]].long()
+        )
+        print(action.shape, position.shape, pot.shape)
+        x = (
+            torch.cat(
+                (
+                    pot.unsqueeze(-1),
+                    amnt_to_call.unsqueeze(-1),
+                    previous_amount.unsqueeze(-1),
+                    action,
+                    position,
+                ),
+                dim=-1,
+            )
+            .view(B, -1)
+            .float()
+        )
+        out = self.layers(x)
+        print(out.shape)
+        return out

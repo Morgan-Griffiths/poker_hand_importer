@@ -121,6 +121,7 @@ def parse_seats(lines, hand_data):
             if blind.lower() in ["small blind", "big blind"]:
                 stats["action_order"] += 1
     hand_data["num_players"] = stats["num_active_players"]
+    assert stats["last_aggressor"] is not None, "stats missing last_aggressor"
     return seats, stats, actions, stacks, stat_data
 
 
@@ -166,7 +167,7 @@ def parse_actions(line, actions, stats, seats, hand_data, stacks, stat_data):
     if re.search(r"All-in|Check|Call|Bets|Raises|Folds", line):
         if re.search(r"All-in", line):
             position, hero, amount, street_total = re.search(
-                r"([\w\s\d\+]+)(\s\[ME\])? :(?:\D*)\$([\d\,\.]+)(?:[\D]+)?([\d\,\.]+)?",
+                r"([\w\s\d\+]*[\w\d])\s*(\[ME\])?\s*:(?:\D*)\$([\d\,\.]+)(?:[\D]+)?([\d\,\.]+)?",
                 line,
             ).groups()
             if re.search(r"All-in\(raise\)", line):
@@ -179,7 +180,7 @@ def parse_actions(line, actions, stats, seats, hand_data, stacks, stat_data):
                 action_type = CALL
         else:
             position, hero, action_type, amount, street_total = re.search(
-                r"([\w\s\d\+]*[\w\d])\s*(\[ME\])? : ([\w\-]+)(?:\s\$)?([\d\,\.]+)?(?:[\D]+)?([\d\,\.]+)?",
+                r"([\w\s\d\+]*[\w\d])\s*(\[ME\])?\s*:\s*([\w\-]+)(?:\s\$)?([\d\,\.]+)?(?:[\D]+)?([\d\,\.]+)?",
                 line,
             ).groups()
         bet_ratio = 0
@@ -259,9 +260,8 @@ def parse_actions(line, actions, stats, seats, hand_data, stacks, stat_data):
 def parse_return(line, seats, stats):
     if re.search(r"Return", line):
         position, hero, amount = re.search(
-            r"([\w\s\d\+]+)(\s\[ME\])? :(?:.*)\$([\d\,\.]+)", line
+            r"([\w\s\d\+]*[\w\d])\s*(\[ME\])?\s*:(?:.*)\$([\d\,\.]+)", line
         ).groups()
-        position = position.rstrip()
         amount = amount.replace(",", "")
         seats[position]["winnings"] += float(amount)
         seats[position]["street_total"] -= float(amount)
@@ -290,7 +290,9 @@ def parse_summary(lines, seats):
     while lines.peek() != "" and lines:
         line = next(lines)
         if line.startswith("Seat"):
-            out = re.search(r": ([\w\s\d\+]+)(\s\[ME\])?(?:\s\$)([\d\,\.]+)?", line)
+            out = re.search(
+                r": ([\w\s\d\+]*[\w\d])\s*(\[ME\])?(?:\s\$)([\d\,\.]+)?", line
+            )
             if out:
                 position, hero, amount = out.groups()
                 amount = amount.replace(",", "")
@@ -384,7 +386,7 @@ def create_dataset(hands):
             target_rewards.extend(rewards)
 
     # print([s.shape for s in padded_states])
-    print(max_original_length)
+    # print(max_original_length)
     # pad states
     padded_states = []
     for s in game_states:
@@ -395,8 +397,4 @@ def create_dataset(hands):
         padded = np.zeros((pad_amount, state_shape))
         padded_state = np.concatenate([s, padded], axis=0)
         padded_states.append(padded_state)
-
-    # np.save("states", game_states)
-    # np.save("actions", target_actions)
-    # np.save("rewards", target_rewards)
-    return padded_states,target_actions,target_rewards
+    return np.stack(padded_states), np.stack(target_actions), np.stack(target_rewards)
