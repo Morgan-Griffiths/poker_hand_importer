@@ -1,3 +1,4 @@
+import einops
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
@@ -96,13 +97,67 @@ class Simple(nn.Module):
         return out
 
 
-class LayerNorm(nn.Module):
-    ...
+class SelfAttention(nn.Module):
+    def __init__(self,head_size,n_embd,block_size,dropout):
+        super().__init__()
+        self.head_size = head_size
+        self.keys = nn.Linear(n_embd,head_size,bias=False)
+        self.queries = nn.Linear(n_embd,head_size,bias=False)
+        self.values = nn.Linear(n_embd,head_size,bias=False)
+        self.dropout = nn.Dropout(dropout)
+        self.register_buffer('tril',torch.tril(torch.ones((block_size,block_size))))
 
+
+    def forward(self,x):
+        # x.shape = B,T,C
+        B,T,C = x.shape
+        k = self.keys(x)
+        q = self.queries(x)
+        v = self.values(x)
+        qk = (q @ einops.rearrange(k,'b t c -> b c t')) * self.head_size**0.5 # (b t t)
+        qk = qk.masked_fill(self.tril[:T,:T] == 0,float('-inf'))
+        qk = F.softmax(qk,dim=-1)
+        qk = self.dropout(qk)
+        out = qk @ v # (b t c)
+        return out
+
+class MultiHeadedAttention(nn.Module):
+    def __init__(self,n_heads,head_size,n_embd,dropout,block_size):
+        super().__init__()
+        self.heads = nn.ModuleList([SelfAttention(head_size,n_embd,dropout,block_size) for _ in range(n_heads)])
+        self.projection = nn.Linear(n_embd,n_embd)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self,x):
+        out = torch.cat([h(x) for h in self.heads],dim=-1)
+        out = self.dropout(self.projection(out))
+        return out
+
+class FeedForward(nn.Module):
+    def __init__(self,n_embd,dropout):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(n_embd,4 * n_embd),
+            nn.ReLU(),
+            nn.Linear(4 * n_embd,n_embd),
+            nn.Dropout(dropout)
+        )
+
+    def forward(self,x):
+        return self.net(x)
 
 class TransformerBlock(nn.Module):
-    ...
+    def __init__(self,n_embd,n_heads,dropout,block_size):
+        super().__init__()
+        self.head = MultiHeadedAttention(n_heads,n_embd//n_heads,n_embd,dropout,block_size)
+        self.ff = FeedForward(n_embd,dropout)
+        self.layernorm1 = nn.LayerNorm(n_embd)
+        self.layernorm2 = nn.LayerNorm(n_embd)
 
+    def forward(self,x):
+        x = x + self.head(self.layernorm1(x))
+        x = x + self.ff(self.layernorm2(x))
+        return x
 
 class Transformer(nn.Module):
     def __init__(self):

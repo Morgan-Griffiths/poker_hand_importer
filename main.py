@@ -5,15 +5,16 @@ from utils import normalize_dataset
 import numpy as np
 from train import train_network
 import torch
+import os
 
 
 def main():
-    chris_folder = "/Users/morgan/Downloads/Ignition chris"
-    tj_folder = "/Users/morgan/Downloads/Ignition tj"
+    chris_folder = f"{os.path.expanduser('~')}/Downloads/Ignition chris"
+    tj_folder = f"{os.path.expanduser('~')}/Downloads/Ignition tj"
     target_folder = chris_folder
     all_hands = []
     for i, hand_path in enumerate(tqdm(os.listdir(target_folder))):
-        # hand_path = '/Users/morgan/Code/PokerAI/poker/hand_example.txt'
+        # hand_path = '{os.path.expanduser('~')}/Code/PokerAI/poker/hand_example.txt'
         # hand_path = "24851028 - $20 PL Hi (6 max) - 202108232357.txt"
         # logger.debug(f'hand_path: {hand_path}')
         # try:
@@ -36,9 +37,12 @@ def main():
 
     (game_states, target_actions, target_rewards) = create_dataset(all_hands)
 
-    # np.save("data/states", game_states)
-    # np.save("data/actions", target_actions)
-    # np.save("data/rewards", target_rewards)
+    # if folder does not exist, create it
+    if not os.path.exists(training_params["data_folder"]):
+        os.makedirs(training_params["data_folder"])
+    np.save("data/states", game_states)
+    np.save("data/actions", target_actions)
+    np.save("data/rewards", target_rewards)
     # find max stacks, pot
     # game_states = normalize_dataset(game_states)
     game_states = torch.from_numpy(game_states)
@@ -54,6 +58,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="building a dataset from poker txt files from Ignition, Or training the network on the subsequent dataset"
     )
-    parser.add_argument("-d", "--dataset", action="store_true")
-    args = parser.parse_args()
-    main(args.dataset)
+    # parser.add_argument("-d", "--dataset", action="store_true")
+    # args = parser.parse_args()
+    main()
