@@ -1,4 +1,4 @@
-from utils import calc_rake
+from utils.utils import calc_rake
 
 
 def test_rake_hi_players2():

@@ -2,7 +2,7 @@ from math import isnan
 import psycopg2
 import time
 import datetime
-from utils import DataAction, Street
+from utils.utils import DataAction, Street
 
 street_mapping = {
     "preflop": 0,
