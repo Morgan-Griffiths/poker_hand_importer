@@ -1,5 +1,4 @@
-from utils import classify_betsize, action_to_str
-from collections import Counter
+from utils import classify_betsize
 
 
 def test_betsize_exact():
