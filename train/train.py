@@ -1,8 +1,8 @@
 import numpy as np
-from models import Simple,Transformer
+from train.models import Simple,Transformer
 from torch.optim import AdamW
 import torch.nn.functional as F
-from config import Config
+from utils.config import Config
 import torch
 
 

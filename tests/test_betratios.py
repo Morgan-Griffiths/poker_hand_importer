@@ -1,6 +1,6 @@
 from more_itertools import peekable
-from import_utils import parse_file, return_bet_ratios
-from utils import Action
+from utils.import_utils import parse_file, return_bet_ratios
+from utils.utils import Action
 import os
 
 hand1 = [1.0, 0, 0.5, 0.5, 0, 0.5]

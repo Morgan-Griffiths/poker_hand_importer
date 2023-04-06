@@ -1,10 +1,10 @@
 import os
 from tqdm import tqdm
-from config import Config
-from import_utils import create_dataset, parse_file
-from utils import normalize_dataset
+from utils.config import Config
+from utils.import_utils import create_dataset, parse_file
+from utils.utils import normalize_dataset
 import numpy as np
-from train import train_network
+from train.train import train_network
 import torch
 import os
 

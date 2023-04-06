@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from flask import Flask
 from flask_cors import CORS
-from utils import state_mapping
+from utils.utils import state_mapping
 
 
 class API:

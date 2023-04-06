@@ -1,8 +1,8 @@
 import re
 from more_itertools import peekable
 import numpy as np
-from data_types import state_shape
-from utils import (
+from utils.data_types import state_shape
+from utils.utils import (
     Action,
     RAISE,
     BET,
