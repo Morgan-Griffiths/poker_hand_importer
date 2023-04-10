@@ -78,7 +78,7 @@ class SelfAttention(nn.Module):
         q = self.queries(x)
         v = self.values(x)
         qk = (q @ einops.rearrange(k,'b t c -> b c t')) * self.head_size**0.5 # (b t t)
-        qk = qk.masked_fill(self.tril[:T,:T] == 0,float('-inf'))
+        # qk = qk.masked_fill(self.tril[:T,:T] == 0,float('-inf'))
         qk = F.softmax(qk,dim=-1)
         qk = self.dropout(qk)
         out = qk @ v # (b t c)
@@ -154,8 +154,8 @@ class HandBoard(nn.Module):
         B, M, C = state.shape
         hand = state[:, :, state_mapping["hand_range"][0]:state_mapping["hand_range"][1]]
         board = state[:, :, state_mapping["board_range"][0]:state_mapping["board_range"][1]]
-        print('hand',hand.shape)
-        print('board',board.shape)
+        # hand torch.Size([B, 24, 8])
+        # board torch.Size([B, 24, 10])
         hand_suit = hand[:,:,1::2]
         hand_rank = hand[:,:,::2]
         board_suit = board[:,:,1::2]
@@ -198,7 +198,6 @@ class PreProcess(nn.Module):
 
     def forward(self, state):
         B, M, C = state.shape
-        print(state.shape)
         # Ordinal features
         hand_board = self.process_hand_board(state)
         # size (B, M, 64)
@@ -270,8 +269,7 @@ class PreProcess(nn.Module):
             )
             .float()
         )
-        print('post process',x.size())
-        # x size (B, 24, 64)
+        # post process torch.Size([B, 24, 256])
         return x
 class Transformer(nn.Module):
     def __init__(self,flattened_token_size,n_embd,n_heads,dropout,block_size,action_size,n_layers):
@@ -281,20 +279,23 @@ class Transformer(nn.Module):
         self.tblocks = nn.Sequential(
             *[TransformerBlock(n_embd,n_heads,dropout,block_size) for _ in range(n_layers)]
             )
-        self.ln_f = nn.LayerNorm(flattened_token_size)
-        self.lm_head = nn.Linear(flattened_token_size,action_size)
+        self.attention_vector = nn.Parameter(torch.randn(n_embd))
+        self.ln_f = nn.LayerNorm(n_embd)
+        self.lm_head = nn.Linear(n_embd,action_size)
         self.emb_position = nn.Embedding(7, 8, padding_idx=0)
         self.emb_action = nn.Embedding(12, 8, padding_idx=0)
 
     def forward(self, state):
         B, M, C = state.shape
-        print('state',state.shape)
+        # state torch.Size([B, 24, 50])
         x = self.preprocess(state)
         # x size (B, 24, 64)
         pos_emb = self.position_embedding(torch.arange(24)) # (T,C)
-        print('pos_emb',pos_emb.shape)
+        # pos_emb torch.Size([24, 256])
         x = x + pos_emb
-        x = self.tblocks(x).view(B, -1)
+        x = self.tblocks(x)
+        attention_weights = torch.softmax(x.matmul(self.attention_vector), dim=1)
+        x = torch.matmul(attention_weights.unsqueeze(1), x).squeeze(1)  # x shape becomes (B, C)
         x = self.ln_f(x)
         x = self.lm_head(x)
         return x

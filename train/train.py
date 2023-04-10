@@ -8,7 +8,8 @@ import torch
 
 def train_network(training_params, game_states, target_actions, target_rewards,config):
     model = Transformer(config.flattened_token_size,config.n_embd,config.n_heads,config.dropout,config.block_size,config.action_size,config.n_layers)
-    optimizer = AdamW(model.parameters(), lr=0.003)
+    optimizer = AdamW(model.parameters(), lr=0.0003)
+    losses = []
     for e in range(training_params["epochs"]):
         out = model(game_states)
         print("out", out.shape)
@@ -17,7 +18,8 @@ def train_network(training_params, game_states, target_actions, target_rewards,c
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print('loss',loss.item())
+        print(f'Epoch: {e}, loss {loss.item()}')
+        losses.append(loss.item())
 
 if __name__ == "__main__":
     config = Config()
