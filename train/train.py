@@ -13,6 +13,7 @@ def train_network(training_params, game_states, target_actions, target_rewards,c
     losses = []
     try:
         for e in range(training_params["epochs"]):
+            torch.save(model.state_dict(), f"{weight_dir}/model_{e}.pth")
             out = model(game_states)
             print("out", out.shape)
             print('target_actions', target_actions.shape)
