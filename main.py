@@ -7,9 +7,37 @@ import numpy as np
 from train.train import train_network
 import torch
 import os
+from env.poker import Poker
+from env.data_types import GameTypes, Globals
 
 
 def main(args):
+    if args.play:
+        game_object = Globals.GameTypeDict[GameTypes.OMAHAHI]
+        env_params = {
+            'game':GameTypes.OMAHAHI,
+            'betsizes': game_object.rule_params['betsizes'],
+            'bet_type': game_object.rule_params['bettype'],
+            'n_players': 2,
+            'pot':0,
+            'stacksize': game_object.state_params['stacksize'],
+            'cards_per_player': game_object.state_params['cards_per_player'],
+            'starting_street': game_object.starting_street,
+            'global_mapping':config.global_mapping,
+            'state_mapping':config.state_mapping,
+            'obs_mapping':config.obs_mapping,
+            'shuffle':True
+        }
+        print(f'Environment Parameters: Starting street: {env_params["starting_street"]},\
+            Stacksize: {env_params["stacksize"]},\
+            Pot: {env_params["pot"]},\
+            Bettype: {env_params["bet_type"]},\
+            Betsizes: {env_params["betsizes"]}')
+        env = Poker(env_params)
+        state,obs,done,action_mask,betsize_mask = env.reset()
+        while not done:
+            action = np.random.choice(np.arange(len(action_mask)),p=action_mask)
+            state,obs,done,action_mask,betsize_mask = env.step(action)
     if args.convert:
         chris_folder = f"{os.path.expanduser('~')}/Downloads/Ignition chris"
         tj_folder = f"{os.path.expanduser('~')}/Downloads/Ignition tj"
@@ -66,5 +94,6 @@ if __name__ == "__main__":
     )
     parser.add_argument("-c", "--convert", action="store_true")
     parser.add_argument("-t", "--train", action="store_true")
+    parser.add_argument("-p", "--play", action="store_true")
     args = parser.parse_args()
     main(args)
