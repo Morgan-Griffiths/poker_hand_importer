@@ -1,4 +1,4 @@
-from utils import classify_betsize
+from utils.utils import classify_betsize
 
 
 def test_betsize_exact():
