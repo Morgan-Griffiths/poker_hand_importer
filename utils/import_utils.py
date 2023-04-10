@@ -376,6 +376,6 @@ def create_dataset(hands):
         max_original_length = max(s.shape[0], max_original_length)
         pad_amount = max_len - s.shape[0]
         padded = np.zeros((pad_amount, state_shape))
-        padded_state = np.concatenate([s, padded], axis=0)
+        padded_state = np.concatenate([padded,s], axis=0) # reverse padding to pad on the end vs in the front.
         padded_states.append(padded_state)
     return np.stack(padded_states), np.stack(target_actions), np.stack(target_rewards)
