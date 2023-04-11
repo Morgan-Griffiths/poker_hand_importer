@@ -81,7 +81,7 @@ def main(args):
     elif args.train:
         config = Config()
         training_params = {
-            "epochs": args.epochs,
+            "epochs": int(args.epochs),
         }
         game_states = torch.from_numpy(np.load(f"{dataset_destination}/states.npy"))
         target_actions = torch.from_numpy(np.load(f"{dataset_destination}/actions.npy") - 1)
