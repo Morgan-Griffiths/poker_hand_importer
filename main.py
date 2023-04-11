@@ -47,10 +47,6 @@ def main(args):
         for i, hand_path in enumerate(tqdm(os.listdir(target_folder))):
             # hand_path = '{os.path.expanduser('~')}/Code/PokerAI/poker/hand_example.txt'
             # hand_path = "24851028 - $20 PL Hi (6 max) - 202108232357.txt"
-            # logger.debug(f'hand_path: {hand_path}')
-            # try:
-            # lines = open(hand_path,'r',encoding='utf-8-sig').read().splitlines()
-            # print(hand_path)
             lines = (
                 open(os.path.join(target_folder, hand_path), "r", encoding="utf-8-sig")
                 .read()
@@ -59,11 +55,6 @@ def main(args):
             hero = "tj" if target_folder == tj_folder else "chris"
             hands = parse_file(lines, hand_path, hero)
             all_hands.extend(hands)
-            # if db_insertion:
-            #     store_hand(hand)
-            # if i == 5:
-            #     break
-            # break
         training_params = {"epochs": 25, "data_folder": os.path.join(os.getcwd(), "data")}
 
         (game_states, target_actions, target_rewards) = create_dataset(all_hands)
