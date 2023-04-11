@@ -22,7 +22,7 @@ def main(args):
     else:
         target_folder = chris_folder
         dataset_name = "chris_dataset"
-    dataset_destination = os.path.join(training_params["data_folder"],dataset_name)
+    dataset_destination = os.path.join(os.path.join(os.getcwd(),'data'),dataset_name)
     if args.play:
         game_object = Globals.GameTypeDict[GameTypes.OMAHAHI]
         env_params = {
@@ -62,7 +62,7 @@ def main(args):
             hero = "tj" if target_folder == tj_folder else "chris"
             hands = parse_file(lines, hand_path, hero)
             all_hands.extend(hands)
-        training_params = {"epochs": 25, "data_folder": os.path.join(os.getcwd(), "data")}
+        training_params = {"epochs": 25, "data_folder": dataset_destination}
 
         # json.dump(all_hands, open("all_hands.json", "w"))
         # all_hands = json.loads(open("all_hands.json", "r").read())
