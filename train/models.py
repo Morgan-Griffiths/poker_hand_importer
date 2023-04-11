@@ -286,6 +286,7 @@ class Transformer(nn.Module):
         self.emb_position = nn.Embedding(7, 8, padding_idx=0)
         self.emb_action = nn.Embedding(12, 8, padding_idx=0)
         self.positions = torch.arange(24)
+        self.positions = self.positions.to(self.device)
 
     def forward(self, state):
         state = state.to(self.device)
