@@ -9,7 +9,7 @@ import torch
 def train_network(training_params, game_states, target_actions, target_rewards,config):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     weight_dir = "weights"
-    model = Transformer(config.flattened_token_size,config.n_embd,config.n_heads,config.dropout,config.block_size,config.action_size,config.n_layers)
+    model = Transformer(config.n_embd,config.n_heads,config.dropout,config.block_size,config.action_size,config.n_layers,device)
     model.to(device)
     game_states = game_states.to(device)
     target_actions = target_actions.to(device)

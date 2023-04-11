@@ -272,8 +272,9 @@ class PreProcess(nn.Module):
         # post process torch.Size([B, 24, 256])
         return x
 class Transformer(nn.Module):
-    def __init__(self,flattened_token_size,n_embd,n_heads,dropout,block_size,action_size,n_layers):
+    def __init__(self,n_embd,n_heads,dropout,block_size,action_size,n_layers,device):
         super().__init__()
+        self.device = device
         self.preprocess = PreProcess()
         self.position_embedding = nn.Embedding(block_size,n_embd)
         self.tblocks = nn.Sequential(
@@ -286,6 +287,7 @@ class Transformer(nn.Module):
         self.emb_action = nn.Embedding(12, 8, padding_idx=0)
 
     def forward(self, state):
+        state = state.to(self.device)
         B, M, C = state.shape
         # state torch.Size([B, 24, 50])
         x = self.preprocess(state)
