@@ -171,6 +171,7 @@ def normalize_dataset(states: np.array):
 
 def scale_state(state, bb):
     """Scale all non-categorical features by the bb."""
+        
     state[state_mapping["previous_amount"]] = np.log(
         (state[state_mapping["previous_amount"]] / bb) + 1
     )
@@ -273,7 +274,8 @@ class MLConversion:
         num_active_players = number_of_players
         bb = hand["hand_data"]["big_blind"]
         hero, players = process_players(hand["player_data"].values(), bb)
-        if not hero:
+        
+        if not hero or any([True if p.is_active and p.stack == 0 else False for p in players ]):
             return [], [], []
         result = hero.winnings
         active_positions = set([p.position for p in players])
@@ -429,6 +431,16 @@ class MLConversion:
                     next_players.rotate(-1)
                 action_amount = action.amount if action.amount else 0
                 # update pot, update stacks
+                cur_player = [p for p in players if p.position == action.position][0]
+                if cur_player.stack - action_amount < -1:
+                    print(hand["hand_data"]["file_name"])
+                    pprint.pprint(actions)
+                    print(stat_data)
+                    print(stack_data)
+                    print(action_amount)
+                    print(cur_player.stack - action_amount)
+                    print([p.stack for p in players])
+                    return [],[],[]
                 update_player_stack(players,action.position,action_amount)
                 next_state[state_mapping["last_agro_amount"]] = last_agro_amount
                 next_state[state_mapping["last_agro_action"]] = last_agro_action

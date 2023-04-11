@@ -31,7 +31,10 @@ class Player:
         self.is_active = is_active
 
     def update_stack(self,amount):
-        self.stack -= amount
+        if self.stack - amount < 0 and self.stack - amount > -0.1:
+            self.stack = 0
+        else:
+            self.stack -= amount
 
     def update_is_active(self,is_active):
         self.is_active = is_active

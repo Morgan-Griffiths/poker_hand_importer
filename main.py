@@ -1,5 +1,6 @@
 import os
 import pathlib
+import json
 from tqdm import tqdm
 from utils.config import Config
 from utils.import_utils import create_dataset, parse_file
@@ -42,7 +43,12 @@ def main(args):
     if args.convert:
         chris_folder = pathlib.Path(__file__).parent / "Ignition chris"
         tj_folder = pathlib.Path(__file__).parent / "Ignition tj"
-        target_folder = chris_folder
+        if args.dataset == "tj":
+            target_folder = tj_folder
+            dataset_name = "tj_dataset"
+        else:
+            target_folder = chris_folder
+            dataset_name = "chris_dataset"
         all_hands = []
         for i, hand_path in enumerate(tqdm(os.listdir(target_folder))):
             # hand_path = '{os.path.expanduser('~')}/Code/PokerAI/poker/hand_example.txt'
@@ -57,13 +63,18 @@ def main(args):
             all_hands.extend(hands)
         training_params = {"epochs": 25, "data_folder": os.path.join(os.getcwd(), "data")}
 
+        # json.dump(all_hands, open("all_hands.json", "w"))
+        # all_hands = json.loads(open("all_hands.json", "r").read())
         (game_states, target_actions, target_rewards) = create_dataset(all_hands)
 
         if not os.path.exists(training_params["data_folder"]):
             os.makedirs(training_params["data_folder"])
-        np.save("data/states", game_states)
-        np.save("data/actions", target_actions)
-        np.save("data/rewards", target_rewards)
+        dataset_destination = os.path.join(training_params["data_folder"],dataset_name)
+        if not os.path.exists(dataset_destination):
+            os.makedirs(dataset_destination)
+        np.save(f"{dataset_destination}/states", game_states)
+        np.save(f"{dataset_destination}/actions", target_actions)
+        np.save(f"{dataset_destination}/rewards", target_rewards)
         # find max stacks, pot
         # game_states = normalize_dataset(game_states)
     elif args.train:
@@ -85,6 +96,7 @@ if __name__ == "__main__":
         description="building a dataset from poker txt files from Ignition, Or training the network on the subsequent dataset"
     )
     parser.add_argument("-c", "--convert", action="store_true")
+    parser.add_argument("-d", "--dataset", help="which dataset to convert", default="tj")
     parser.add_argument("-t", "--train", action="store_true")
     parser.add_argument("-p", "--play", action="store_true")
     args = parser.parse_args()
