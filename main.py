@@ -81,7 +81,7 @@ def main(args):
     elif args.train:
         config = Config()
         training_params = {
-            "epochs": 10,
+            "epochs": args.epochs,
         }
         game_states = torch.from_numpy(np.load(f"{dataset_destination}/states.npy"))
         target_actions = torch.from_numpy(np.load(f"{dataset_destination}/actions.npy") - 1)
@@ -100,5 +100,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--dataset", help="which dataset to convert", default="tj")
     parser.add_argument("-t", "--train", action="store_true")
     parser.add_argument("-p", "--play", action="store_true")
+    parser.add_argument("-e", "--epochs", help="number of epochs to train for", default=10)
+
     args = parser.parse_args()
     main(args)
