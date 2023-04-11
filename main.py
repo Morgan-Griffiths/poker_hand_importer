@@ -1,4 +1,5 @@
 import os
+import pathlib
 from tqdm import tqdm
 from utils.config import Config
 from utils.import_utils import create_dataset, parse_file
@@ -39,8 +40,8 @@ def main(args):
             action = np.random.choice(np.arange(len(action_mask)),p=action_mask)
             state,obs,done,action_mask,betsize_mask = env.step(action)
     if args.convert:
-        chris_folder = f"{os.path.expanduser('~')}/Downloads/Ignition chris"
-        tj_folder = f"{os.path.expanduser('~')}/Downloads/Ignition tj"
+        chris_folder = pathlib.Path(__file__).parent / "Ignition chris"
+        tj_folder = pathlib.Path(__file__).parent / "Ignition tj"
         target_folder = chris_folder
         all_hands = []
         for i, hand_path in enumerate(tqdm(os.listdir(target_folder))):
