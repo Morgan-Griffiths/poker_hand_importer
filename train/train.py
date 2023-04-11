@@ -27,7 +27,7 @@ def train_network(training_params, game_states, target_actions, target_rewards,c
             optimizer.step()
             print(f'Epoch: {e}, loss {loss.item()}')
             losses.append(loss.item())
-    except:
+    except KeyboardInterrupt:
         # save weights
         torch.save(model.state_dict(), f"{weight_dir}/model_{e}.pth")
         np.save(f"{weight_dir}/losses_{e}.npy", losses)
