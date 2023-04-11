@@ -7,6 +7,7 @@ import torch
 
 
 def train_network(training_params, game_states, target_actions, target_rewards,config):
+    torch.cude.empty_cache()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     weight_dir = "weights"
     model = Transformer(config.n_embd,config.n_heads,config.dropout,config.block_size,config.action_size,config.n_layers,device)
@@ -27,7 +28,9 @@ def train_network(training_params, game_states, target_actions, target_rewards,c
             optimizer.step()
             print(f'Epoch: {e}, loss {loss.item()}')
             losses.append(loss.item())
-    except KeyboardInterrupt:
+    except Exception as e:
+        print(e)
+        print(torch.cuda.memory_summary(device=None, abbreviated=True))
         # save weights
         torch.save(model.state_dict(), f"{weight_dir}/model_{e}.pth")
         np.save(f"{weight_dir}/losses_{e}.npy", losses)
