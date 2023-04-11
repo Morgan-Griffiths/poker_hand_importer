@@ -14,6 +14,15 @@ from env.data_types import GameTypes, Globals
 
 
 def main(args):
+    chris_folder = pathlib.Path(__file__).parent / "Ignition chris"
+    tj_folder = pathlib.Path(__file__).parent / "Ignition tj"
+    if args.dataset == "tj":
+        target_folder = tj_folder
+        dataset_name = "tj_dataset"
+    else:
+        target_folder = chris_folder
+        dataset_name = "chris_dataset"
+    dataset_destination = os.path.join(training_params["data_folder"],dataset_name)
     if args.play:
         game_object = Globals.GameTypeDict[GameTypes.OMAHAHI]
         env_params = {
@@ -41,14 +50,6 @@ def main(args):
             action = np.random.choice(np.arange(len(action_mask)),p=action_mask)
             state,obs,done,action_mask,betsize_mask = env.step(action)
     if args.convert:
-        chris_folder = pathlib.Path(__file__).parent / "Ignition chris"
-        tj_folder = pathlib.Path(__file__).parent / "Ignition tj"
-        if args.dataset == "tj":
-            target_folder = tj_folder
-            dataset_name = "tj_dataset"
-        else:
-            target_folder = chris_folder
-            dataset_name = "chris_dataset"
         all_hands = []
         for i, hand_path in enumerate(tqdm(os.listdir(target_folder))):
             # hand_path = '{os.path.expanduser('~')}/Code/PokerAI/poker/hand_example.txt'
@@ -69,7 +70,7 @@ def main(args):
 
         if not os.path.exists(training_params["data_folder"]):
             os.makedirs(training_params["data_folder"])
-        dataset_destination = os.path.join(training_params["data_folder"],dataset_name)
+        
         if not os.path.exists(dataset_destination):
             os.makedirs(dataset_destination)
         np.save(f"{dataset_destination}/states", game_states)
@@ -82,9 +83,9 @@ def main(args):
         training_params = {
             "epochs": 10,
         }
-        game_states = torch.from_numpy(np.load("data/states.npy"))
-        target_actions = torch.from_numpy(np.load("data/actions.npy") - 1)
-        target_rewards = torch.from_numpy(np.load("data/rewards.npy"))
+        game_states = torch.from_numpy(np.load(f"{dataset_destination}/states.npy"))
+        target_actions = torch.from_numpy(np.load(f"{dataset_destination}/actions.npy") - 1)
+        target_rewards = torch.from_numpy(np.load(f"{dataset_destination}/rewards.npy"))
         # print(game_states.shape, target_actions.shape, target_rewards.shape)
         train_network(training_params, game_states, target_actions, target_rewards,config)
 
