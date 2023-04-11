@@ -285,6 +285,7 @@ class Transformer(nn.Module):
         self.lm_head = nn.Linear(n_embd,action_size)
         self.emb_position = nn.Embedding(7, 8, padding_idx=0)
         self.emb_action = nn.Embedding(12, 8, padding_idx=0)
+        self.positions = torch.arange(24)
 
     def forward(self, state):
         state = state.to(self.device)
@@ -292,7 +293,7 @@ class Transformer(nn.Module):
         # state torch.Size([B, 24, 50])
         x = self.preprocess(state)
         # x size (B, 24, 64)
-        pos_emb = self.position_embedding(torch.arange(24)) # (T,C)
+        pos_emb = self.position_embedding(self.positions) # (T,C)
         # pos_emb torch.Size([24, 256])
         x = x + pos_emb
         x = self.tblocks(x)
