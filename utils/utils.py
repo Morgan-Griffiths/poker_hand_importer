@@ -285,16 +285,16 @@ class MLConversion:
         # convert int position into index for
         num_hero_decisions = 0
         model_inputs = []
-        if number_of_players == 2:
-            print('beginning',next_players)
+        # if number_of_players == 2:
+        #     print('beginning',next_players)
         # for a in actions:
         #     print(a)
         # print(POSITION_TO_SEAT)
         for i, (action, round_stats, round_seats) in enumerate(
             zip(actions, stat_data, stack_data)
         ):
-            if i > 1 and number_of_players == 2:
-                print("action i",i, action)
+            # if i > 1 and number_of_players == 2:
+            #     print("action i",i, action)
             next_state = np.zeros(state_shape)
             if isinstance(action, Street):
                 current_street += 1
@@ -446,9 +446,9 @@ class MLConversion:
                 ]
                 next_state[state_mapping["previous_action"]] = action_category
 
-                if i > 1 and number_of_players == 2:
-                    # print file name
-                    print('ith stage',i,next_players)
+                # if i > 1 and number_of_players == 2:
+                #     # print file name
+                #     print('ith stage',i,next_players)
             padded_villains = [p for p in players if p.position != hero.position] + [Player(0,0,None,0,0,0)] * (
                 6 - len(players)
             )
