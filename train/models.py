@@ -203,7 +203,7 @@ class PreProcess(nn.Module):
         # size (B, M, 64)
         street_emb = self.emb_street(state[:, :, state_mapping["street"]].long())
         num_players_emb = self.emb_num_players(state[:, :, state_mapping["num_players"]].long())
-        hero_pos_emb = self.emb_position(state[:, :, state_mapping["hero_pos"]].long())
+        hero_pos_emb = self.emb_position(state[:, :, state_mapping["hero_position"]].long())
         hero_active_emb = self.emb_active(state[:, :, state_mapping["hero_active"]].long())
         vil1_active_emb = self.emb_active(state[:, :, state_mapping["vil1_active"]].long())
         vil2_active_emb = self.emb_active(state[:, :, state_mapping["vil2_active"]].long())
