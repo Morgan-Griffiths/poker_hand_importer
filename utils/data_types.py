@@ -1,25 +1,49 @@
 
 from collections import namedtuple
 
+class Action:
+    def __init__(self,position,is_hero,action_type,amount,street_total,bet_ratio,is_blind,pot,rake,last_aggressor_index,num_active_players,action_order) -> None:
+        self.position = position
+        self.is_hero = is_hero
+        self.action_type = action_type
+        self.amount = amount
+        self.street_total = street_total
+        self.bet_ratio = bet_ratio
+        self.is_blind = is_blind
+        self.pot = pot
+        self.rake = rake
+        self.last_aggressor_index = last_aggressor_index
+        self.num_active_players = num_active_players
+        self.action_order = action_order
 
-Action = namedtuple(
-    "Action",
-    [
-        "position",
-        "is_hero",
-        "action_type",
-        "amount",
-        "street_total",
-        "bet_ratio",
-        "is_blind",
-        "pot",
-        "rake",
-        "last_aggressor_index",
-        "num_active_players",
-        "action_order",
-    ],
-)
+    def __repr__(self):
+        return f"Action({self.position},{self.action_type},{self.amount},{self.street_total},{self.bet_ratio},{self.is_blind},{self.pot},{self.rake},{self.last_aggressor_index},{self.num_active_players},{self.action_order})"
+# Action = namedtuple(
+#     "Action",
+#     [
+#         "position",
+#         "is_hero",
+#         "action_type",
+#         "amount",
+#         "street_total",
+#         "bet_ratio",
+#         "is_blind",
+#         "pot",
+#         "rake",
+#         "last_aggressor_index",
+#         "num_active_players",
+#         "action_order",
+#     ],
+# )
 Street = namedtuple("Street", ["street_type", "board_cards"])
+
+class Positions:
+    SMALL_BLIND = "Small Blind"
+    BIG_BLIND = "Big Blind"
+    UTG = "UTG"
+    UTG_1 = "UTG+1"
+    UTG_2 = "UTG+2"
+    DEALER = "Dealer"
 
 class Player:
     def __init__(self,stack,hole_cards,position,is_hero,winnings,is_active) -> None:
@@ -114,12 +138,19 @@ postflop_positions = [
     "Dealer",
 ]
 postflop_order = {p: i for i, p in enumerate(postflop_positions)}
-PLAYERS_POSITIONS_DICT = {
-    2: ["Dealer", "Big Blind"],
+PLAYERS_POSITIONS_POSTFLOP_DICT = {
+    2: ["Big Blind","Dealer", ],
     3: ["Small Blind", "Big Blind", "Dealer"],
     4: ["Small Blind", "Big Blind", "UTG", "Dealer"],
     5: ["Small Blind", "Big Blind", "UTG", "UTG+1", "Dealer"],
     6: ["Small Blind", "Big Blind", "UTG", "UTG+1", "UTG+2", "Dealer"],
+}
+PLAYERS_POSITIONS_PREFLOP_DICT = {
+    2: [ "Dealer","Big Blind" ],
+    3: [ "Dealer","Small Blind", "Big Blind"],
+    4: [ "UTG", "Dealer","Small Blind", "Big Blind"],
+    5: [ "UTG", "UTG+1", "Dealer","Small Blind", "Big Blind"],
+    6: [ "UTG", "UTG+1", "UTG+2", "Dealer","Small Blind", "Big Blind"],
 }
 # print(postflop_order, preflop_order)
 betsizes = (1, 0.9, 0.75, 0.67, 0.5, 0.33, 0.25, 0.1)
@@ -138,7 +169,7 @@ state_mapping = {
     "board_range": [8, 18],
     "street": 18,
     "num_players": 19,
-    "hero_pos": 20,
+    "hero_position": 20,
     "hero_active": 21,
     "vil1_active": 22,
     "vil2_active": 23,
@@ -168,6 +199,7 @@ state_mapping = {
     "previous_action": 47,
     "previous_bet_is_blind": 48,
     "next_player": 49,
+    "current_player": 50,
 }
-state_shape = 50
+state_shape = 51
 

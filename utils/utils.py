@@ -2,7 +2,7 @@ from collections import deque
 import pprint
 from typing import List
 import numpy as np
-from utils.data_types import Player, rake_cap,Action,RAISE,BET,FOLD,CALL,CHECK,BLIND,PREFLOP,FLOP,TURN,RIVER,POSITION_TO_SEAT,rank_to_int,suit_to_int,preflop_order,betsizes,action_type_to_int,state_mapping,action_betsize_to_int,preflop_positions,postflop_positions,Street,state_shape,int_to_rank,int_to_suit
+from utils.data_types import Action,PLAYERS_POSITIONS_PREFLOP_DICT, Player, Positions, rake_cap,Action,RAISE,BET,FOLD,CALL,CHECK,BLIND,PREFLOP,FLOP,TURN,RIVER,POSITION_TO_SEAT,rank_to_int,suit_to_int,preflop_order,betsizes,action_type_to_int,state_mapping,action_betsize_to_int,preflop_positions,postflop_positions,Street,state_shape,int_to_rank,int_to_suit
 
 def calc_rake(num_players, bb, pot):
     # print(f"calc_rake {num_players},{bb},{pot}")
@@ -232,27 +232,17 @@ class MLConversion:
 
     def record_hand(self,next_state,num_active_players,hero,hand_board,current_street,padded_villains,next_players):
         next_state[0:18] = hand_board
+        for i in range(1,6):
+            next_state[state_mapping[f"vil{i}_active"]] = padded_villains[i-1].is_active
+            next_state[state_mapping[f"vil{i}_stack"]] = padded_villains[i-1].stack
+            next_state[state_mapping[f"vil{i}_position"]] = POSITION_TO_SEAT[padded_villains[i-1].position]
         next_state[state_mapping["num_players"]] = num_active_players
         next_state[state_mapping["street"]] = current_street
-        next_state[state_mapping["hero_pos"]] = POSITION_TO_SEAT[hero.position]
+        next_state[state_mapping["hero_position"]] = POSITION_TO_SEAT[hero.position]
         next_state[state_mapping["hero_stack"]] = hero.stack
-        next_state[state_mapping["vil1_stack"]] = padded_villains[0].stack
-        next_state[state_mapping["vil2_stack"]] = padded_villains[1].stack
-        next_state[state_mapping["vil3_stack"]] = padded_villains[2].stack
-        next_state[state_mapping["vil4_stack"]] = padded_villains[3].stack
-        next_state[state_mapping["vil5_stack"]] = padded_villains[4].stack
-        next_state[state_mapping["vil1_position"]] = POSITION_TO_SEAT[padded_villains[0].position]
-        next_state[state_mapping["vil2_position"]] = POSITION_TO_SEAT[padded_villains[1].position]
-        next_state[state_mapping["vil3_position"]] = POSITION_TO_SEAT[padded_villains[2].position]
-        next_state[state_mapping["vil4_position"]] = POSITION_TO_SEAT[padded_villains[3].position]
-        next_state[state_mapping["vil5_position"]] = POSITION_TO_SEAT[padded_villains[4].position]
         next_state[state_mapping["hero_active"]] = hero.is_active
-        next_state[state_mapping["vil1_active"]] = padded_villains[0].is_active
-        next_state[state_mapping["vil2_active"]] = padded_villains[1].is_active
-        next_state[state_mapping["vil3_active"]] = padded_villains[2].is_active
-        next_state[state_mapping["vil4_active"]] = padded_villains[3].is_active
-        next_state[state_mapping["vil5_active"]] = padded_villains[4].is_active
-        next_state[state_mapping["next_player"]] = POSITION_TO_SEAT[next_players[0]]
+        next_state[state_mapping["current_player"]] = POSITION_TO_SEAT[next_players[0]]
+        next_state[state_mapping["next_player"]] = POSITION_TO_SEAT[next_players[1]] if len(next_players) > 1 else 0
 
     def convert_hand(self,hand):
         """
@@ -270,10 +260,10 @@ class MLConversion:
         padded_board = [0] * 10
         actions = hand["actions"][1:]  # skip preflop street
 
-        number_of_players = hand["hand_data"]["num_players"]
-        num_active_players = number_of_players
+        # number_of_players = hand["hand_data"]["num_players"]
         bb = hand["hand_data"]["big_blind"]
         hero, players = process_players(hand["player_data"].values(), bb)
+        number_of_players = num_active_players = len(players)
         
         if not hero or any([True if p.is_active and p.stack == 0 else False for p in players ]):
             return [], [], []
@@ -286,22 +276,25 @@ class MLConversion:
         position_conversion = [hero.position] + position_conversion
         position_to_int = {p: i for i, p in enumerate(position_conversion, start=1)}
         position_to_str = {v: k for k, v in position_to_int.items()}
-        # print('position_to_int',position_to_int)
-        # print('position_to_str',position_to_str)
         position_to_str[0] = "None"
         # position_to_stack[hero[2]] = 0
         next_players = deque([p for p in postflop_positions if p in active_positions])
+        if number_of_players == 2 and Positions.DEALER in active_positions:
+            next_players.rotate(-1)
         hand_board = hero.hole_cards + padded_board
         # convert int position into index for
         num_hero_decisions = 0
         model_inputs = []
+        if number_of_players == 2:
+            print('beginning',next_players)
         # for a in actions:
         #     print(a)
         # print(POSITION_TO_SEAT)
         for i, (action, round_stats, round_seats) in enumerate(
             zip(actions, stat_data, stack_data)
         ):
-            # print("action", action)
+            if i > 1 and number_of_players == 2:
+                print("action i",i, action)
             next_state = np.zeros(state_shape)
             if isinstance(action, Street):
                 current_street += 1
@@ -373,7 +366,7 @@ class MLConversion:
                     )
                 elif action.action_type == BET:
                     if action.is_blind:
-                        action_category = 0
+                        action_category = 4
                         next_state[state_mapping["amount_to_call"]] = 0
                         next_state[state_mapping["pot_odds"]] = 0
                         next_state[state_mapping["previous_bet_is_blind"]] = 1
@@ -390,7 +383,7 @@ class MLConversion:
                     # classify betsize
                     if action.is_blind:
                         next_state[state_mapping["previous_bet_is_blind"]] = 1
-                        action_category = 0
+                        action_category = 4
                     else:
                         next_state[state_mapping["previous_bet_is_blind"]] = 0
                         action_category = classify_betsize(action.bet_ratio)
@@ -452,6 +445,10 @@ class MLConversion:
                     action.position
                 ]
                 next_state[state_mapping["previous_action"]] = action_category
+
+                if i > 1 and number_of_players == 2:
+                    # print file name
+                    print('ith stage',i,next_players)
             padded_villains = [p for p in players if p.position != hero.position] + [Player(0,0,None,0,0,0)] * (
                 6 - len(players)
             )
@@ -465,121 +462,5 @@ class MLConversion:
             self.record_hand(next_state,num_active_players,hero,hand_board,current_street,padded_villains,next_players)
             scale_state(next_state, bb)
             model_inputs.append(next_state)
-            # print('next_players',next_players)
-            # print('position_to_int',position_to_int)
-            # print('previous_bet_is_blind',next_state[state_mapping["previous_bet_is_blind"]])
-            # print('previous_action',next_state[state_mapping["previous_action"]])
-            # print('previous_amount',next_state[state_mapping["previous_amount"]])
-            # print('previous_position',next_state[state_mapping["previous_position"]])
-            # print_cards(next_state[0:8])
         target_rewards = [(result/bb) * 0.95 ** i for i in range(num_hero_decisions - 1, -1, -1)]
-        # visualize_state(
-        #     game_states,
-        #     target_actions,
-        #     target_rewards,
-        #     hand,
-        #     position_to_int,
-        #     position_to_str,
-        # )
         return (game_states, target_actions, target_rewards)
-
-
-def visualize_state(
-    game_states, target_actions, target_rewards, hand, position_to_int, position_to_str
-):
-    # print(game_states)
-    if game_states:
-        print(len(game_states))
-        print(game_states[0].shape)
-        print(hand["hand_data"])
-        print("target_actions", target_actions)
-        print("target_rewards", target_rewards)
-        num_players = hand["hand_data"]["num_players"]
-        # for game_state in game_states:
-        game_state = game_states[-1]
-        for i in range(game_state.shape[0]):
-            ...
-            print_state(game_state[i], position_to_int, position_to_str)
-        # for action in target_actions:
-        #     print(action_to_str[action])
-        # print("target_rewards", target_rewards)
-
-
-def print_state(state, position_to_int, position_to_str):
-    # position_conversion = PLAYERS_POSITIONS_DICT[num_players]
-    # position_to_int = {p: i for i, p in enumerate(position_conversion, start=1)}
-    # position_to_str = {v: k for k, v in position_to_int.items()}
-    # position_to_str[0] = "None"
-    # print(f'hero hand: {state[0:8]}')
-    print_cards(state[0:8])
-    print_cards(state[8:18])
-    # print(int_to_street[state[state_mapping["street"]]])
-    # print('Number of active players',state[state_mapping["num_players"]])
-    # print(position_to_str[state[state_mapping["hero_pos"]]])
-    last_agro_action = state[state_mapping["last_agro_action"]]
-    last_agro_position = state[state_mapping["last_agro_position"]]
-    last_agro_is_blind = state[state_mapping["last_agro_is_blind"]]
-
-    pot = state[state_mapping["pot"]]
-    amount_to_call = state[state_mapping["amount_to_call"]]
-    pot_odds = state[state_mapping["pot_odds"]]
-    previous_amount = state[state_mapping["previous_amount"]]
-    previous_position = state[state_mapping["previous_position"]]
-    previous_action = state[state_mapping["previous_action"]]
-    previous_bet_is_blind = state[state_mapping["previous_bet_is_blind"]]
-
-    vil_position = state[state_mapping["vil1_position"]]
-    vil_position2 = state[state_mapping["vil2_position"]]
-    vil_position3 = state[state_mapping["vil3_position"]]
-    vil_position4 = state[state_mapping["vil4_position"]]
-    vil_position5 = state[state_mapping["vil5_position"]]
-
-    hero_stack = state[state_mapping["hero_stack"]]
-    vil1_stack = state[state_mapping["vil1_stack"]]
-    vil2_stack = state[state_mapping["vil2_stack"]]
-    vil3_stack = state[state_mapping["vil3_stack"]]
-    vil4_stack = state[state_mapping["vil4_stack"]]
-    vil5_stack = state[state_mapping["vil5_stack"]]
-
-    hero_active = state[state_mapping["hero_active"]]
-    vil1_active = state[state_mapping["vil1_active"]]
-    vil2_active = state[state_mapping["vil2_active"]]
-    vil3_active = state[state_mapping["vil3_active"]]
-    vil4_active = state[state_mapping["vil4_active"]]
-    vil5_active = state[state_mapping["vil5_active"]]
-    # print(f"Previously active players: hero {hero_active}, ")
-    print(f"pot {pot}, amount_to_call {amount_to_call}, pot_odds {pot_odds}")
-    print(
-        f"Previous_position {position_to_str[previous_position]}, previous_amount {previous_amount}, previous_action {action_to_str[int(previous_action)]}, previous_bet_is_blind {previous_bet_is_blind}"
-    )
-    print(
-        f"last_agro_position {position_to_str[last_agro_position]}, last_agro_action {action_to_str[int(last_agro_action)]}, last_agro_is_blind {last_agro_is_blind}"
-    )
-    print(f"vil_position to act {position_to_str[vil_position]}")
-    print(f"vil_position2 to act {position_to_str[vil_position2]}")
-    print(f"vil_position3 to act {position_to_str[vil_position3]}")
-    print(f"vil_position4 to act {position_to_str[vil_position4]}")
-    print(f"vil_position5 to act {position_to_str[vil_position5]}")
-
-    print(f"hero_active {hero_active}")
-    print(f"vil1_active {vil1_active}")
-    print(f"vil2_active {vil2_active}")
-    print(f"vil3_active {vil3_active}")
-    print(f"vil4_active {vil4_active}")
-    print(f"vil5_active {vil5_active}")
-    print(f"hero_stack {hero_stack}")
-    print(f"vil1_stack {vil1_stack}")
-    print(f"vil2_stack {vil2_stack}")
-    print(f"vil3_stack {vil3_stack}")
-    print(f"vil4_stack {vil4_stack}")
-    print(f"vil5_stack {vil5_stack}")
-
-
-def print_cards(row):
-    ranks = row[0::2]
-    suits = row[1::2]
-    cards = [
-        "".join((int_to_rank[rank].upper(), int_to_suit[suit]))
-        for rank, suit in zip(ranks, suits)
-    ]
-    print(cards)
