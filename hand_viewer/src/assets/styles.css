@@ -1,0 +1,186 @@
+*,
+*::after,
+*::before {
+  margin: 0;
+  padding: 0;
+  box-sizing: inherit;
+}
+
+html {
+  height: 100%;
+  width: 100%;
+  font-size: 62.5%;
+}
+
+body {
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+body {
+  background-image: url('./images/Poker-Background.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.disabled {
+  pointer-events: none;
+  background-color: gray;
+}
+
+.highlighted {
+  border-width: thick;
+  border: solid orange 2px;
+  box-shadow: 0 0 5px 5px orange;
+  border-radius: 5px;
+  height: 121px;
+  width: 200px;
+  transform: translate(-14px, -21px);
+  position: absolute;
+}
+
+.table {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.play-area {
+  /* flex: 0 0 auto; */
+  aspect-ratio: 1;
+  /* position: relative; */
+}
+
+/* repeat for all players */
+
+.top-35 {
+  top: 35%;
+}
+.top-48 {
+  top: 48%;
+}
+
+/* BUTTONS */
+
+.btn:link,
+.btn:visited {
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 1.5rem 4rem;
+  display: inline-block;
+  border-radius: 10rem;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.btn:hover {
+  /* transform: translateY(-0.3rem); */
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.2);
+}
+.btn:hover::after {
+  /* transform: scaleX(1.4) scaleY(1.6); */
+  opacity: 0;
+}
+
+.btn:active {
+  transform: translateY(-0.1rem);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.2);
+}
+
+.btn--white {
+  background-color: #fff;
+  color: #111;
+}
+.btn--white::after {
+  background-color: #fff;
+}
+
+.btn::after {
+  content: '';
+  display: inline-block;
+  height: 100%;
+  width: 100%;
+  border-radius: 10rem;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  transition: all 0.4s;
+}
+
+.btn--animated {
+  animation: moveInBottom 0.5s ease-out 0.75s;
+  animation-fill-mode: backwards;
+}
+
+.btn-text:link,
+.btn-text:visited {
+  color: #55c57a;
+  display: inline-block;
+  border-bottom: 1px solid #55c57a;
+  padding: 3px;
+  text-decoration: none;
+  text-underline-offset: 0.8rem;
+  transition: all 0.2s;
+}
+
+.btn-text:hover {
+  color: #fff;
+  background-color: #55c57a;
+  transform: translateY(-0.2rem);
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.15);
+}
+
+.btn-text:active {
+  transform: translateY(0);
+}
+
+/* Dropdown container */
+.dropdown {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+/* Dropdown button */
+.dropbtn {
+  background-color: #4caf50;
+  color: white;
+  padding: 8px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Dropdown menu items */
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  background-color: #f1f1f1;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-content a:hover {
+  background-color: #ddd;
+}
+
+/* Show the dropdown menu when hovering */
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+/* Change the background color of the dropdown button when hovering */
+.dropdown:hover .dropbtn {
+  background-color: #3e8e41;
+}

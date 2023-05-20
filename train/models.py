@@ -264,6 +264,13 @@ class PreProcess(nn.Module):
                     last_agro_position_emb,
                     last_agro_is_blind_emb,
                     num_players_emb,
+                    next_player_emb,
+                    hero_stack,
+                    vil1_stack,
+                    vil2_stack,
+                    vil3_stack,
+                    vil4_stack,
+                    vil5_stack,
                 ),
                 dim=-1,
             )
@@ -271,6 +278,7 @@ class PreProcess(nn.Module):
         )
         # post process torch.Size([B, 24, 256])
         return x
+    
 class Transformer(nn.Module):
     def __init__(self,n_embd,n_heads,dropout,block_size,action_size,n_layers,device):
         super().__init__()

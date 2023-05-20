@@ -3,14 +3,13 @@ import logging
 import numpy as np
 from requests import request
 import torch
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from train.models import Transformer
 from utils.config import Config
 from utils.utils import state_mapping
 
-from pokerrl.config import Config as EnvConfig
-from pokerrl import Game, json_view, return_current_player, player_view
+import pokerrl_env as pokerrl
 
 class API:
     def __init__(self,dataset='chris'):
@@ -30,14 +29,14 @@ class API:
         ## LOAD MODEL
         config = Config()
         self.device = 'cpu'#torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        weights = torch.load('weights/model_99.pth',map_location=torch.device('cpu'))
+        weights = torch.load('weights/model_300.pth',map_location=torch.device('cpu'))
         self.model = Transformer(config.n_embd,config.n_heads,config.dropout,config.block_size,config.action_size,config.n_layers,self.device)
         self.model.load_state_dict(weights)
 
         ## LOAD ENVIRONMENT
-        self.env_config = EnvConfig()
+        self.env_config = pokerrl.Config(num_players=2)
         self.player_position = self.env_config.player_positions[0]
-        self.env = Game(self.env_config)
+        self.env = pokerrl.Game(self.env_config)
 
 
     def parse_dataset_sample(self,state):
@@ -102,41 +101,55 @@ class API:
         probs = outputs.softmax(dim=-1)
         return json.dumps({"model_outputs":probs.numpy().tolist()})
     
+    def pad_states(self,states):
+        B = states.shape[0]
+        padding = torch.zeros((24 - B,self.env_config.player_state_shape)).to(self.device)
+        padded_states = torch.cat((padding,torch.tensor(states).to(self.device)),dim=0).unsqueeze(0)
+        return padded_states
+
+    
     def iterate_game_until_player_turn(self,global_states,done,winnings,action_mask):
-        current_player = return_current_player(global_states,self.env_config)
-        while current_player != self.player_position:
-            player_state = player_view(global_states,current_player,self.env_config)
-            outputs = self.model(torch.tensor(player_state).to(self.device).unsqueeze(0)).squeeze(0).detach().cpu()
-            probs = (outputs * torch.tensor(action_mask).to(self.device)).softmax(dim=-1)
+        current_player = pokerrl.return_current_player(global_states,self.env_config)
+        probs = torch.zeros(self.env_config.num_actions)
+        while current_player != self.player_position and not done:
+            print('current_player,player_position',current_player,self.player_position)
+            player_state = pokerrl.player_view(global_states,current_player,self.env_config)
+            padded_state = self.pad_states(player_state)
+            outputs = self.model(padded_state).squeeze(0).detach().cpu()
+            probs = outputs.softmax(dim=-1) * torch.tensor(action_mask)
+            probs = probs / probs.sum()
+            print('probs',probs,probs.sum())
+            print('action_mask',action_mask)
             action = torch.multinomial(probs,1).item()
+            print('model action',action)
             global_states,done,winnings,action_mask = self.env.step(action)
-            current_player = return_current_player(global_states,self.env_config)
-        return global_states,done,winnings,action_mask,current_player
+            current_player = pokerrl.return_current_player(global_states,self.env_config)
+        return global_states,done,winnings,action_mask,current_player,probs
     
     def reset_game(self):
         self.increment_player_position()
         global_states,done,winnings,action_mask = self.env.reset()
-        current_player = return_current_player(global_states,self.env_config)
-        # global_states,done,winnings,action_mask,current_player = self.iterate_game_until_player_turn(global_states,done,winnings,action_mask)
-        return json.dumps({"game_states":json_view(global_states,current_player,self.env_config), "done":done, "winnings":winnings, "action_mask":action_mask.tolist()})
+        # current_player = pokerrl.return_current_player(global_states,self.env_config)
+        global_states,done,winnings,action_mask,current_player,probs = self.iterate_game_until_player_turn(global_states,done,winnings,action_mask)
+        return json.dumps({"game_states":pokerrl.json_view(global_states,current_player,self.env_config), "done":done, "winnings":winnings, "action_mask":action_mask.tolist(),'model_outputs':probs.numpy().tolist()})
     
     def step_game(self,action):
-        print('action',action)
+        print('player action',action)
         global_states,done,winnings,action_mask = self.env.step(action)
-        current_player = return_current_player(global_states,self.env_config)
-        # global_states,done,winnings,action_mask,current_player = self.iterate_game_until_player_turn(global_states,done,winnings,action_mask)
-        return json.dumps({"game_states":json_view(global_states,current_player,self.env_config), "done":done, "winnings":winnings, "action_mask":action_mask.tolist()})
+        # current_player = pokerrl.return_current_player(global_states,self.env_config)
+        global_states,done,winnings,action_mask,current_player,probs = self.iterate_game_until_player_turn(global_states,done,winnings,action_mask)
+        return json.dumps({"game_states":pokerrl.json_view(global_states,current_player,self.env_config), "done":done, "winnings":winnings, "action_mask":action_mask.tolist(),'model_outputs':probs.numpy().tolist()})
 
-    def reset_game_model_observer(self):
-        self.increment_player_position()
-        global_states,done,winnings,action_mask = self.env.reset()
-        global_states,done,winnings,action_mask,current_player = self.iterate_game_until_player_turn(global_states,done,winnings,action_mask)
-        return json.dumps({"game_states":json_view(global_states,current_player,self.env_config), "done":done, "winnings":winnings, "action_mask":action_mask.tolist()})
+    # def reset_game_model_observer(self):
+    #     self.increment_player_position()
+    #     global_states,done,winnings,action_mask = self.env.reset()
+    #     global_states,done,winnings,action_mask,current_player = self.iterate_game_until_player_turn(global_states,done,winnings,action_mask)
+    #     return json.dumps({"game_states":pokerrl.json_view(global_states,current_player,self.env_config), "done":done, "winnings":winnings, "action_mask":action_mask.tolist()})
     
-    def step_game_model_observer(self,action):
-        global_states,done,winnings,action_mask = self.env.step(action)
-        global_states,done,winnings,action_mask,current_player = self.iterate_game_until_player_turn(global_states,done,winnings,action_mask)
-        return json.dumps({"game_states":json_view(global_states,current_player,self.env_config), "done":done, "winnings":winnings, "action_mask":action_mask.tolist()})
+    # def step_game_model_observer(self,action):
+    #     global_states,done,winnings,action_mask = self.env.step(action)
+    #     global_states,done,winnings,action_mask,current_player = self.iterate_game_until_player_turn(global_states,done,winnings,action_mask)
+    #     return json.dumps({"game_states":pokerrl.json_view(global_states,current_player,self.env_config), "done":done, "winnings":winnings, "action_mask":action_mask.tolist()})
     
 
 # instantiate env
@@ -172,7 +185,8 @@ def reset_game():
 
 @app.route('/api/step_game', methods=['POST'])
 def step_game():
-    action = request.get_json()
+    data = request.get_json()
+    action = data['action']
     return api.step_game(action)
 
 @app.route('/api/inference', methods=['GET'])
