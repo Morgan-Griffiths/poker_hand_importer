@@ -2,7 +2,7 @@ from os import linesep
 import re
 from more_itertools import peekable
 import numpy as np
-from utils.utils import (
+from src.utils.utils import (
     Action,
     RAISE,
     BET,
@@ -21,7 +21,7 @@ from utils.utils import (
     return_standard_max_potlimit_betsize,
 )
 
-from create_dataset.db_insert import store_hand
+from src.create_dataset.db_insert import store_hand
 
 
 def parse_seats(lines, hand_data):
