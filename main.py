@@ -2,11 +2,11 @@ import os
 import pathlib
 import json
 from tqdm import tqdm
-from utils.config import Config
-from utils.import_utils import create_dataset, parse_file
-from utils.utils import normalize_dataset
+from poker_hand_importer.utils.config import Config
+from poker_hand_importer.utils.import_utils import create_dataset, parse_file
+from poker_hand_importer.utils.utils import normalize_dataset
 import numpy as np
-from train.train import train_network
+from poker_hand_importer.train.train import train_network
 import torch
 import os
 

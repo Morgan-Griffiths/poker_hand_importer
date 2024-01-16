@@ -5,9 +5,9 @@ from requests import request
 import torch
 from flask import Flask, request
 from flask_cors import CORS
-from train.models import Transformer
-from utils.config import Config
-from utils.utils import state_mapping
+from poker_hand_importer.train.models import Transformer
+from poker_hand_importer.utils.config import Config
+from poker_hand_importer.utils.utils import state_mapping
 
 import pokerrl_env as pokerrl
 

@@ -19,7 +19,7 @@ from models.model_utils import norm_frequencies
 from models.networks import OmahaActor,OmahaObsQCritic
 
 """
-API for connecting the Poker Env with Alex's frontend client for baseline testing the trained bot.
+Backend server for connecting to visual frontend client. Useful for testing the trained model.
 """
 
 class API(object):
