@@ -1,8 +1,13 @@
 import re
 from more_itertools import peekable
 import numpy as np
-from utils.data_types import state_shape
-from utils.utils import (
+from src.utils.utils import (
+    MLConversion,
+    calc_rake,
+    return_standard_max_potlimit_betsize,
+)
+from src.utils.data_types import (
+    state_shape,
     Action,
     RAISE,
     BET,
@@ -10,11 +15,9 @@ from utils.utils import (
     CHECK,
     FOLD,
     PREFLOP,
-    MLConversion,
     Street,
-    calc_rake,
-    return_standard_max_potlimit_betsize,
 )
+
 
 def parse_seats(lines, hand_data):
     actions = [Street(PREFLOP, None)]
@@ -376,10 +379,12 @@ def create_dataset(hands):
         max_original_length = max(s.shape[0], max_original_length)
         pad_amount = max_len - s.shape[0]
         if pad_amount < 0:
-            padded_state = s[abs(pad_amount):]
+            padded_state = s[abs(pad_amount) :]
             padded_states.append(padded_state)
         else:
             padded = np.zeros((pad_amount, state_shape))
-            padded_state = np.concatenate([padded,s], axis=0) # reverse padding to pad on the end vs in the front.
+            padded_state = np.concatenate(
+                [padded, s], axis=0
+            )  # reverse padding to pad on the end vs in the front.
             padded_states.append(padded_state)
     return np.stack(padded_states), np.stack(target_actions), np.stack(target_rewards)

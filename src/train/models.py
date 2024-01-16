@@ -2,7 +2,7 @@ import einops
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-from utils.utils import state_mapping
+from src.utils.utils import state_mapping
 
 
 # @torch.no_grad()

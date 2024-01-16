@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "poker-hand-importer"
+name = "src"
 version = "0.1.0"
 description = ""
 authors = ["Morgan Griffiths <C5ipo7i@yahoo.com>"]
@@ -13,6 +13,10 @@ Flask = "3.0.0"
 Flask-Cors = "4.0.0"
 numpy = "1.24.2"
 requests = "2.31.0"
+more-itertools = "10.2.0"
+tqdm = "4.66.1"
+matplotlib = "3.8.2"
+einops = "0.7.0"
 
 
 [build-system]

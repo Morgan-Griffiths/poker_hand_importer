@@ -2,11 +2,11 @@ import os
 import pathlib
 import json
 from tqdm import tqdm
-from poker_hand_importer.utils.config import Config
-from poker_hand_importer.utils.import_utils import create_dataset, parse_file
-from poker_hand_importer.utils.utils import normalize_dataset
+from src.utils.config import Config
+from src.utils.import_utils import create_dataset, parse_file
+from src.utils.utils import normalize_dataset
 import numpy as np
-from poker_hand_importer.train.train import train_network
+from src.train.train import train_network
 import torch
 import os
 
@@ -20,7 +20,7 @@ def main(args):
     else:
         target_folder = chris_folder
         dataset_name = "chris_dataset"
-    dataset_destination = os.path.join(os.path.join(os.getcwd(),'data'),dataset_name)
+    dataset_destination = os.path.join(os.path.join(os.getcwd(), "data"), dataset_name)
     if args.convert:
         all_hands = []
         for i, hand_path in enumerate(tqdm(os.listdir(target_folder))):
@@ -42,7 +42,7 @@ def main(args):
 
         if not os.path.exists(training_params["data_folder"]):
             os.makedirs(training_params["data_folder"])
-        
+
         if not os.path.exists(dataset_destination):
             os.makedirs(dataset_destination)
         np.save(f"{dataset_destination}/states", game_states)
@@ -56,10 +56,14 @@ def main(args):
             "epochs": int(args.epochs),
         }
         game_states = torch.from_numpy(np.load(f"{dataset_destination}/states.npy"))
-        target_actions = torch.from_numpy(np.load(f"{dataset_destination}/actions.npy") - 1)
+        target_actions = torch.from_numpy(
+            np.load(f"{dataset_destination}/actions.npy") - 1
+        )
         target_rewards = torch.from_numpy(np.load(f"{dataset_destination}/rewards.npy"))
         # print(game_states.shape, target_actions.shape, target_rewards.shape)
-        train_network(training_params, game_states, target_actions, target_rewards,config)
+        train_network(
+            training_params, game_states, target_actions, target_rewards, config
+        )
 
 
 if __name__ == "__main__":
@@ -69,10 +73,14 @@ if __name__ == "__main__":
         description="building a dataset from poker txt files from Ignition, Or training the network on the subsequent dataset"
     )
     parser.add_argument("-c", "--convert", action="store_true")
-    parser.add_argument("-d", "--dataset", help="which dataset to convert", default="tj")
+    parser.add_argument(
+        "-d", "--dataset", help="which dataset to convert", default="tj"
+    )
     parser.add_argument("-t", "--train", action="store_true")
     parser.add_argument("-p", "--play", action="store_true")
-    parser.add_argument("-e", "--epochs", help="number of epochs to train for", default=10)
+    parser.add_argument(
+        "-e", "--epochs", help="number of epochs to train for", default=10
+    )
 
     args = parser.parse_args()
     main(args)
