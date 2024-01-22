@@ -17,7 +17,7 @@ def gather_trajectories():
 def self_play(training_params, config):
     # torch.cude.empty_cache()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    weight_dir = "weights"
+    weight_dir = "src/weights"
     model = Transformer(
         config.n_embd,
         config.n_heads,

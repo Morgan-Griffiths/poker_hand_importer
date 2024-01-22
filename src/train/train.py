@@ -38,7 +38,7 @@ class PokerDataLoader(DataLoader):
 def train_network(training_params, game_states, target_actions, target_rewards, config):
     # torch.cude.empty_cache()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    weight_dir = "weights"
+    weight_dir = "src/weights"
     model = Transformer(
         config.n_embd,
         config.n_heads,
@@ -63,6 +63,11 @@ def train_network(training_params, game_states, target_actions, target_rewards, 
                 target_action = target_action.to(device)
                 target_reward = target_reward.to(device)
                 out = model(game_state)
+                # outputs actions for all game states
+                # mask out all actions aside from the hero actions. (last one for now)
+                # find the beginning of the padding
+                print("game_state", game_state.shape)
+                print("out", out.shape, "target_action", target_action.shape)
                 loss = F.cross_entropy(out, target_action)
                 optimizer.zero_grad()
                 loss.backward()
@@ -70,12 +75,14 @@ def train_network(training_params, game_states, target_actions, target_rewards, 
                 epoch_losses.append(loss.item())
             print(f"Epoch: {e}, loss {np.mean(epoch_losses)}")
             losses.append(np.mean(epoch_losses))
-    except Exception as e:
-        print(e)
-        # print(torch.cuda.memory_summary(device=None, abbreviated=False))
-        # save weights
+    except KeyboardInterrupt:
+        print("Got keyboard interrupt, saving model and weights")
         torch.save(model.state_dict(), f"{weight_dir}/model_{e}.pth")
         np.save(f"{weight_dir}/losses_{e}.npy", losses)
+    except Exception as e:
+        raise e
+        # print(torch.cuda.memory_summary(device=None, abbreviated=False))
+        # save weights
 
     # save loss graph
     plt.plot(losses)
