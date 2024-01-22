@@ -428,8 +428,9 @@ def create_dataset(hands: list[PokerHand]):
             padded_states.append(padded_state)
         else:
             padded = np.zeros((pad_amount, state_shape))
+            # padding on end
             padded_state = np.concatenate(
-                [padded, s], axis=0
+                [s, padded], axis=0
             )  # reverse padding to pad on the end vs in the front.
             padded_states.append(padded_state)
     return np.stack(padded_states), np.stack(target_actions), np.stack(target_rewards)
