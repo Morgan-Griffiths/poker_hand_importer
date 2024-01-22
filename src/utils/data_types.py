@@ -1,41 +1,94 @@
-
 from collections import namedtuple
+from typing import Optional, Union
+from pydantic import BaseModel
 
-class Action:
-    def __init__(self,position,is_hero,action_type,amount,street_total,bet_ratio,is_blind,pot,rake,last_aggressor_index,num_active_players,action_order) -> None:
-        self.position = position
-        self.is_hero = is_hero
-        self.action_type = action_type
-        self.amount = amount
-        self.street_total = street_total
-        self.bet_ratio = bet_ratio
-        self.is_blind = is_blind
-        self.pot = pot
-        self.rake = rake
-        self.last_aggressor_index = last_aggressor_index
-        self.num_active_players = num_active_players
-        self.action_order = action_order
+
+class Hero:
+    TJ = "tj"
+    CHRIS = "chris"
+
+
+class StreetTotal(BaseModel):
+    street_total: float
+
+
+class PositionStats(BaseModel):
+    seat_num: int
+    is_hero: bool
+    stack: float
+    hole_cards: Optional[list[str]]
+    winnings: float
+    street_total: float
+
+
+class StatsItem(BaseModel):
+    pot: float
+    num_active_players: int
+
+
+class HandStats(BaseModel):
+    pot: float
+    rake: float
+    bet_ratios: list[float]
+    num_active_players: int
+    action_order: int
+    last_aggressor: Optional[str]
+    last_aggressor_index: Optional[int]
+    penultimate_raise: Optional[float]
+
+
+class HandData(BaseModel):
+    file_name: str
+    hand_number: int
+    hero: str
+    ts: Optional[str]
+    game_type: Optional[str]
+    bet_limit: Optional[str]
+    big_blind: Optional[float]
+    num_players: Optional[int]
+
+
+class Action(BaseModel):
+    position: str
+    is_hero: bool
+    action_type: str
+    amount: Optional[float]
+    street_total: Optional[float]
+    bet_ratio: Optional[float]
+    is_blind: bool
+    pot: float
+    rake: float
+    last_aggressor_index: Optional[int]
+    num_active_players: int
+    action_order: int
 
     def __repr__(self):
         return f"Action({self.position},{self.action_type},{self.amount},{self.street_total},{self.bet_ratio},{self.is_blind},{self.pot},{self.rake},{self.last_aggressor_index},{self.num_active_players},{self.action_order})"
-# Action = namedtuple(
-#     "Action",
-#     [
-#         "position",
-#         "is_hero",
-#         "action_type",
-#         "amount",
-#         "street_total",
-#         "bet_ratio",
-#         "is_blind",
-#         "pot",
-#         "rake",
-#         "last_aggressor_index",
-#         "num_active_players",
-#         "action_order",
-#     ],
-# )
-Street = namedtuple("Street", ["street_type", "board_cards"])
+
+
+class Street(BaseModel):
+    street_type: str
+    board_cards: Optional[list[str]]
+
+
+class PlayerData(BaseModel):
+    position: str
+    is_hero: bool
+    stack: float
+    hole_cards: Optional[list[str]]
+    winnings: float
+
+
+class PokerHand(BaseModel):
+    seats: dict
+    stats: HandStats
+    actions: list[Union[Action, Street]]
+    result: dict
+    hand_data: HandData
+    player_data: dict[str, PlayerData]
+    stat_data: list[StatsItem]
+    stack_data: list
+
 
 class Positions:
     SMALL_BLIND = "Small Blind"
@@ -45,46 +98,52 @@ class Positions:
     UTG_2 = "UTG+2"
     DEALER = "Dealer"
 
-class Player:
-    def __init__(self,stack,hole_cards,position,is_hero,winnings,is_active) -> None:
-        self.stack = stack
-        self.hole_cards = hole_cards
-        self.position = position
-        self.is_hero = is_hero
-        self.winnings = winnings
-        self.is_active = is_active
 
-    def update_stack(self,amount):
+class Player(BaseModel):
+    stack: float
+    hole_cards: list[int]
+    position: Optional[str]
+    is_hero: bool
+    winnings: float
+    is_active: int
+
+    def update_stack(self, amount):
         if self.stack - amount < 0 and self.stack - amount > -0.1:
             self.stack = 0
         else:
             self.stack -= amount
 
-    def update_is_active(self,is_active):
+    def update_is_active(self, is_active):
         self.is_active = is_active
 
     def __repr__(self):
         return f"Player({self.stack},{self.position},{'Hero' if self.is_hero else 'Villain'},{'Active' if self.is_active else 'Folded'})"
 
-RAISE = "Raises"
-BET = "Bets"
-FOLD = "Folds"
-CALL = "Calls"
-CHECK = "Checks"
-BLIND = "blind"
-PREFLOP = "preflop"
-FLOP = "flop"
-TURN = "turn"
-RIVER = "river"
+
+class ActionType:
+    RAISE = "Raises"
+    BET = "Bets"
+    FOLD = "Folds"
+    CALL = "Calls"
+    CHECK = "Checks"
+    BLIND = "blind"
+
+
+class StreetType:
+    PREFLOP = "preflop"
+    FLOP = "flop"
+    TURN = "turn"
+    RIVER = "river"
+
 
 POSITION_TO_SEAT = {
     None: 0,
-    'Small Blind': 1,
-    'Big Blind': 2,
-    'UTG+2':3,
-    'UTG+1':4,
-    'UTG':5,
-    'Dealer':6
+    "Small Blind": 1,
+    "Big Blind": 2,
+    "UTG+2": 3,
+    "UTG+1": 4,
+    "UTG": 5,
+    "Dealer": 6,
 }
 
 rake_cap = {
@@ -109,7 +168,6 @@ rake_cap = {
         9: 4,
     },
 }
-
 
 
 ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"]
@@ -139,29 +197,37 @@ postflop_positions = [
 ]
 postflop_order = {p: i for i, p in enumerate(postflop_positions)}
 PLAYERS_POSITIONS_POSTFLOP_DICT = {
-    2: ["Big Blind","Dealer", ],
+    2: [
+        "Big Blind",
+        "Dealer",
+    ],
     3: ["Small Blind", "Big Blind", "Dealer"],
     4: ["Small Blind", "Big Blind", "UTG", "Dealer"],
     5: ["Small Blind", "Big Blind", "UTG", "UTG+1", "Dealer"],
     6: ["Small Blind", "Big Blind", "UTG", "UTG+1", "UTG+2", "Dealer"],
 }
 PLAYERS_POSITIONS_PREFLOP_DICT = {
-    2: [ "Dealer","Big Blind" ],
-    3: [ "Dealer","Small Blind", "Big Blind"],
-    4: [ "UTG", "Dealer","Small Blind", "Big Blind"],
-    5: [ "UTG", "UTG+1", "Dealer","Small Blind", "Big Blind"],
-    6: [ "UTG", "UTG+1", "UTG+2", "Dealer","Small Blind", "Big Blind"],
+    2: ["Dealer", "Big Blind"],
+    3: ["Dealer", "Small Blind", "Big Blind"],
+    4: ["UTG", "Dealer", "Small Blind", "Big Blind"],
+    5: ["UTG", "UTG+1", "Dealer", "Small Blind", "Big Blind"],
+    6: ["UTG", "UTG+1", "UTG+2", "Dealer", "Small Blind", "Big Blind"],
 }
-# print(postflop_order, preflop_order)
 betsizes = (1, 0.9, 0.75, 0.67, 0.5, 0.33, 0.25, 0.1)
-action_strs = [FOLD, CHECK, CALL]
+action_strs = [ActionType.FOLD, ActionType.CHECK, ActionType.CALL]
 action_type_to_int = {a: i for i, a in enumerate(action_strs, start=1)}
 action_betsize_to_int = {b: i for i, b in enumerate(betsizes, start=4)}
 action_to_int = action_type_to_int | action_betsize_to_int
 action_to_str = {v: k for k, v in action_to_int.items()}
 action_to_str[0] = "None"
 num_actions = 11
-street_to_int = {"-": 0.0, PREFLOP: 1.0, FLOP: 2.0, TURN: 3.0, RIVER: 4.0}
+street_to_int = {
+    "-": 0.0,
+    StreetType.PREFLOP: 1.0,
+    StreetType.FLOP: 2.0,
+    StreetType.TURN: 3.0,
+    StreetType.RIVER: 4.0,
+}
 int_to_street = {v: k for k, v in street_to_int.items()}
 
 state_mapping = {
@@ -202,4 +268,3 @@ state_mapping = {
     "current_player": 50,
 }
 state_shape = 51
-

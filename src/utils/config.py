@@ -5,7 +5,7 @@ class Config:
     eval_interval = 500
     learning_rate = 3e-4
     eval_iters = 200
-    n_embd = 256
+    n_embd = 312
     flattened_token_size = 6144
     head_size = 16
     n_heads = 2
