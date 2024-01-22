@@ -50,6 +50,10 @@ def train_network(training_params, game_states, target_actions, target_rewards, 
     )
     model.to(device)
     optimizer = AdamW(model.parameters(), lr=0.0003)
+    padding = torch.zeros(
+        config.state_size
+    )  # hack for telling which action to unmask. Later record the indicies of the relevant actions alongside the target actions.
+    batch_indices = torch.arange(config.batch_size)
     losses = []
     try:
         for e in range(training_params["epochs"]):
@@ -66,9 +70,14 @@ def train_network(training_params, game_states, target_actions, target_rewards, 
                 # outputs actions for all game states
                 # mask out all actions aside from the hero actions. (last one for now)
                 # find the beginning of the padding
-                print("game_state", game_state.shape)
-                print("out", out.shape, "target_action", target_action.shape)
-                loss = F.cross_entropy(out, target_action)
+                # Check if all elements in the last dimension are equal to padding
+                is_padded = (game_state == padding).all(dim=-1).float()
+                # Find the first instance of padding for each item in the first axis
+                padded_indices = is_padded.argmax(dim=1)
+                relevant_actions = out[batch_indices, padded_indices]
+                # Index the model outputs to get the relevant actions
+                # The result will have shape [32, 11], representing the chosen action for each game state
+                loss = F.cross_entropy(relevant_actions, target_action)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()

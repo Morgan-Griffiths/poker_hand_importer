@@ -1,5 +1,5 @@
 class Config:
-    batch_size = 64
+    batch_size = 32
     block_size = 256
     max_iters = 5000
     eval_interval = 500
@@ -12,3 +12,4 @@ class Config:
     n_layers = 2
     dropout = 0.2
     action_size = 11
+    state_size = 51

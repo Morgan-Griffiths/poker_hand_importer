@@ -359,7 +359,6 @@ class Transformer(nn.Module):
         self, n_embd, n_heads, dropout, block_size, action_size, n_layers, device
     ):
         super().__init__()
-        print("n_embd", n_embd)
         self.device = device
         self.preprocess = PreProcess()
         self.position_embedding = nn.Embedding(block_size, n_embd)
