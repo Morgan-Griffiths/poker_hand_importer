@@ -2,3 +2,5 @@
 *.vscode
 *.pytest_cache
 *data
+/Ignition chris
+/ignition tj
