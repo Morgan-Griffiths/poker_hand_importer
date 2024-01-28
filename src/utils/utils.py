@@ -2,6 +2,7 @@ from collections import deque
 import pprint
 from typing import List, Optional
 import numpy as np
+import torch
 from src.utils.data_types import (
     Action,
     ActionType,
@@ -24,6 +25,26 @@ from src.utils.data_types import (
     Street,
     state_shape,
 )
+
+
+def select_relevant_actions(game_state, model_probs):
+    assert len(game_state.shape) == 3
+    padding = torch.zeros(
+        game_state.shape[-1]
+    )  # hack for telling which action to unmask. Later record the indicies of the relevant actions alongside the target actions.
+    batch_indices = torch.arange(game_state.shape[0])
+    # print(batch_indices.shape)
+    # print(out.shape)
+    # print(padding.shape)
+    # outputs actions for all game states
+    # mask out all actions aside from the hero actions. (last one for now)
+    # find the beginning of the padding
+    # Check if all elements in the last dimension are equal to padding
+    is_padded = (game_state == padding).all(dim=-1).float()
+    # Find the first instance of padding for each item in the first axis
+    padded_indices = is_padded.argmax(dim=1)
+    relevant_actions = model_probs[batch_indices, padded_indices]
+    return relevant_actions
 
 
 def calc_rake(num_players: int, bb: float, pot: float):

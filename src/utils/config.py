@@ -1,5 +1,5 @@
 class Config:
-    batch_size = 32
+    batch_size = 512
     block_size = 256
     max_iters = 5000
     eval_interval = 500
