@@ -4,6 +4,8 @@ import torch.nn.functional as F
 import torch
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
+from src.utils.utils import select_relevant_actions
+from tqdm import tqdm
 
 from src.train.models import Simple, Transformer
 from src.utils.config import Config
@@ -50,31 +52,27 @@ def train_network(training_params, game_states, target_actions, target_rewards, 
     )
     model.to(device)
     optimizer = AdamW(model.parameters(), lr=0.0003)
-    padding = torch.zeros(
-        config.state_size
-    )  # hack for telling which action to unmask. Later record the indicies of the relevant actions alongside the target actions.
-    batch_indices = torch.arange(config.batch_size)
     losses = []
     try:
         for e in range(training_params["epochs"]):
             epoch_losses = []
 
             torch.save(model.state_dict(), f"{weight_dir}/model_{e}.pth")
-            for game_state, target_action, target_reward in PokerDataLoader(
-                game_states, target_actions, target_rewards
+            for game_state, target_action, target_reward in tqdm(
+                PokerDataLoader(
+                    game_states,
+                    target_actions,
+                    target_rewards,
+                    batch_size=config.batch_size,
+                ),
+                desc=f"Epoch {e}",
+                total=len(game_states) // config.batch_size,
             ):
                 game_state = game_state.to(device)
                 target_action = target_action.to(device)
                 target_reward = target_reward.to(device)
                 out = model(game_state)
-                # outputs actions for all game states
-                # mask out all actions aside from the hero actions. (last one for now)
-                # find the beginning of the padding
-                # Check if all elements in the last dimension are equal to padding
-                is_padded = (game_state == padding).all(dim=-1).float()
-                # Find the first instance of padding for each item in the first axis
-                padded_indices = is_padded.argmax(dim=1)
-                relevant_actions = out[batch_indices, padded_indices]
+                relevant_actions = select_relevant_actions(game_state, out)
                 # Index the model outputs to get the relevant actions
                 # The result will have shape [32, 11], representing the chosen action for each game state
                 loss = F.cross_entropy(relevant_actions, target_action)
