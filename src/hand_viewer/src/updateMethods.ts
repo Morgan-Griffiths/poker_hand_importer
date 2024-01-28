@@ -36,6 +36,7 @@ export default {
     present[hero_position] = hero_active
   },
   updatePlayers(game_state: State, lastActionsPerPlayer: LastAction, is_present: Present) {
+    console.log('updatePlayers')
     const players: PlayerType[] = []
     console.log('game_state', game_state)
     for (let j = 1; j < 6; j++) {

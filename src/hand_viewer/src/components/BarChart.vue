@@ -1,7 +1,7 @@
 <template>
   <div class="bar-container">
     <div
-      v-for="(probability, index) in probabilities"
+      v-for="(probability, index) in probabilities[0]"
       :key="index"
       class="bar"
       :style="{

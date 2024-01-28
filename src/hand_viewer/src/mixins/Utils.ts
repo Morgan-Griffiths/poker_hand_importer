@@ -144,6 +144,19 @@ export function updateLastAction(game_state: State, lastActionsPerPlayer: LastAc
 }
 
 export function convertAction(action: number, previousAction: number) {
+  const labels = [
+    'Fold',
+    'Check',
+    'Call',
+    'B/R 1',
+    'B/R 0.9',
+    'B/R 0.75',
+    'B/R 0.67',
+    'B/R 0.5',
+    'B/R 0.33',
+    'B/R 0.25',
+    'B/R 0.1'
+  ]
   if (action === 0) {
     return 'None'
   } else if (action === 1) {
@@ -153,9 +166,9 @@ export function convertAction(action: number, previousAction: number) {
   } else if (action === 3) {
     return 'Calls'
   } else if (previousAction > 2) {
-    return 'Raises'
+    return `Raises ${labels[action - 1].slice(4)}`
   } else {
-    return 'Bets'
+    return `Bets ${labels[action - 1].slice(4)}`
   }
 }
 

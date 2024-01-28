@@ -66,13 +66,13 @@ export default defineComponent({
 }
 
 .pot-model-review-position {
-  bottom: 35%;
+  bottom: 32%;
 }
 .pot-hand-review-position {
   bottom: 45%;
 }
 .model-review-position {
-  top: 48%;
+  top: 51%;
 }
 .hand-review-position {
   top: 35%;

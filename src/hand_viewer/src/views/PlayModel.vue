@@ -105,6 +105,7 @@ export default defineComponent({
     updatePlayers(game_state: State, lastActionsPerPlayer: LastAction) {
       this.players = []
       this.players = UpdateMethods.updatePlayers(game_state, lastActionsPerPlayer, this.present)
+      console.log('this.players',this.players)
     }
   },
   async mounted() {

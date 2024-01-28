@@ -46,6 +46,7 @@ export default defineComponent({
     class="player"
     :class="modelReview ? 'player-model-' + playerNumber : 'player-' + playerNumber"
   >
+    PLAYER
     <div class="highlighted" v-if="player.is_turn">{{ player.is_turn }}</div>
     <div class="cards">
       <img
@@ -201,12 +202,12 @@ export default defineComponent({
 }
 
 .player-model-1 {
-  top: 29%;
+  top: 32%;
   left: 36%;
 }
 
 .player-model-2 {
-  top: 29%;
+  top: 32%;
   left: 61%;
 }
 

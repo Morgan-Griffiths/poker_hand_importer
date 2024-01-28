@@ -50,30 +50,29 @@ export default defineComponent({
   mixins: [Utils],
   methods: {
     async updateState(data: ServerResponse) {
+      // states are bottom padded
       const modelOutputs = await (await fetch(`${APIServer}/inference`)).json()
       this.probabilities = modelOutputs.model_outputs
       console.log('data', data)
-      console.log('last state', data.game_states[23])
+      console.log('first state', data.game_states[0])
       console.log('modelOutputs', modelOutputs.model_outputs)
       this.history = []
-      let first = false
       try {
         for (let i = 0; i < data.game_states.length; i++) {
           if (!Utils.isStatePadded(data.game_states[i])) {
-            if (!first) {
-              UpdateMethods.recordPresent(this.present, data.game_states[i])
-              first = true
-            }
+            UpdateMethods.recordPresent(this.present, data.game_states[i])
             this.processState(data.game_states[i])
+          } else {
+            this.updatePlayers(data.game_states[i - 1], this.lastActionsPerPlayer)
+            this.history.push(
+              `Target action: ${Utils.convertAction(
+                data.target_actions,
+                data.game_states[i-1].last_agro_action
+              )}, Target reward: ${data.target_rewards.toFixed(2)}`
+            )
+            break
           }
         }
-        this.updatePlayers(data.game_states[data.game_states.length - 1], this.lastActionsPerPlayer)
-        this.history.push(
-          `Target action: ${Utils.convertAction(
-            data.target_actions,
-            data.game_states[23].last_agro_action
-          )}, Target reward: ${data.target_rewards.toFixed(2)}`
-        )
       } catch (error) {
         console.error(`Error occurred while getting next action: ${error}`)
       }
@@ -97,8 +96,8 @@ export default defineComponent({
     const data: ServerResponse = await (await fetch(`${APIServer}/reset`)).json()
     const modelOutputs = await (await fetch(`${APIServer}/inference`)).json()
     watchEffect(() => {
-      this.probabilities = modelOutputs.model_outputs
-      console.log('modelOutputs', modelOutputs.model_outputs)
+      this.probabilities = modelOutputs.model_outputs[0]
+      console.log('probabilities', modelOutputs.model_outputs[0])
       this.updateState(data)
     })
   }
